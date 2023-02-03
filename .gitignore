@@ -1,0 +1,6 @@
+*.user
+.qmake.stash
+version.h
+
+[Dd]ebug/
+[Rr]elease/

@@ -1,0 +1,16 @@
+# See docs http://astyle.sourceforge.net/astyle.html
+--style=allman
+--break-blocks
+--pad-oper
+--pad-comma
+--pad-header
+--pad-paren-in
+--align-pointer=type
+--remove-braces
+--break-after-logical
+#--keep-one-line-statements
+--max-code-length=120
+--max-continuation-indent=120
+--indent-preproc-block
+--indent-switches
+--attach-closing-while

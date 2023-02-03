@@ -1,0 +1,17 @@
+var a = 50;
+var b = 50;
+var h = 10;
+var n = 8;
+var k = 0.8;
+    
+var matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+var base_csys = CONSTRAINTS_Create_Base_CoorSys(matrix); 
+   
+var x = a;
+var y = b;
+for (var i = 1; i <= n; i++)
+{    
+   SOLID_Create_Block("block_" + i, a/2 - x/2, b/2 - y/2, h * i, x, y, h); 
+   x *= k;
+   y *= k;      
+}

@@ -1,0 +1,39 @@
+<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+<HTML>
+<HEAD>
+<meta name="GENERATOR" content="Microsoft&reg; HTML Help Workshop 4.1">
+<!-- Sitemap 1.0 -->
+</HEAD><BODY>
+<UL>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="introduction to my application">
+		<param name="Name" value="Introduction to my Solid Edge AddIn Application">
+		<param name="Local" value="intro.htm">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Modal dialog box command">
+		<param name="Name" value="Modal Dialog Box Command">
+		<param name="Local" value="ModalDialogBoxCommand.htm">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="My Solid Edge AddIn modal dialog box command">
+		<param name="Name" value="Modal Dialog Box Command">
+		<param name="Local" value="ModalDialogBoxCommand.htm">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="My Locate Command">
+		<param name="Name" value="Locate Command">
+		<param name="Local" value="LocateCommand.htm">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="My Solid Edge AddIn Locate Command">
+		<param name="Name" value="Locate Command">
+		<param name="Local" value="LocateCommand.htm">
+		</OBJECT>
+	<LI> <OBJECT type="text/sitemap">
+		<param name="Name" value="Solid Edge AddIn">
+		<param name="Name" value="Introduction to my Solid Edge AddIn Application">
+		<param name="Local" value="intro.htm">
+		</OBJECT>
+</UL>
+</BODY></HTML>

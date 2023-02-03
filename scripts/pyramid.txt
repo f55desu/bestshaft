@@ -1,0 +1,41 @@
+// �������� �������
+var matrix = [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0];
+// �������� ������� ������� ���������
+var base_csys = CONSTRAINTS_Create_Base_CoorSys(matrix);
+// �������� ������
+var sketch1 = SKETCH_Open("SKETCH_000", base_csys);
+// �������� 4� �����
+SKETCH_Create_2D_Line_2Points(sketch1, "Line5", 0, 0, 100, 0);
+SKETCH_Create_2D_Line_2Points(sketch1, "Line8", 0, 100, 0, 0);
+SKETCH_Create_2D_Line_2Points(sketch1, "Line6", 100, 0, 100, 100);
+SKETCH_Create_2D_Line_2Points(sketch1, "Line7", 100, 100, 0, 100);
+// �������� ������
+SKETCH_Close(sketch1);
+// �������� �����������
+SOLID_Create_Protrusion_Extrude(sketch1, "EXTRUDE2", 0, 10);
+// ��������� ���������
+var face1 = SELECT_Object(50, 50, 10);
+// ��������� ���
+var edge1 = SELECT_Object(50, 0, 10);
+// ��������� �����
+var point1 = SELECT_Object(0, 0, 10);
+// �������� ������� ��������� �� ���������, ��� � �����
+var new_csys1 = CONSTRAINTS_Create_3DReference_CoordSys_Plane_Axis_Point(face1, edge1, point1);
+var sketch2 = SKETCH_Open("SKETCH_001", new_csys1);
+SKETCH_Create_2D_Line_2Points(sketch2, "Line12", 25, 75, 25, 25);
+SKETCH_Create_2D_Line_2Points(sketch2, "Line9", 25, 25, 75, 25);
+SKETCH_Create_2D_Line_2Points(sketch2, "Line11", 75, 75, 25, 75);
+SKETCH_Create_2D_Line_2Points(sketch2, "Line10", 75, 25, 75, 75);
+SKETCH_Close(sketch2);
+SOLID_Create_Protrusion_Extrude(sketch2, "EXTRUDE5", 0, 30);
+var face2 = SELECT_Object(50, 50, 40);
+var edge2 = SELECT_Object(50, 25, 40);
+var point2 = SELECT_Object(25, 25, 40);
+var new_csys2 = CONSTRAINTS_Create_3DReference_CoordSys_Plane_Axis_Point(face2, edge2, point2);
+var sketch3 = SKETCH_Open("SKETCH_002", new_csys2);
+SKETCH_Create_2D_Line_2Points(sketch3, "Line16", 10, 35, 10, 15);
+SKETCH_Create_2D_Line_2Points(sketch3, "Line13", 10, 15, 40, 15);
+SKETCH_Create_2D_Line_2Points(sketch3, "Line14", 40, 15, 40, 35);
+SKETCH_Create_2D_Line_2Points(sketch3, "Line15", 40, 35, 10, 35);
+SKETCH_Close(sketch3);
+SOLID_Create_Protrusion_Extrude(sketch3, "EXTRUDE8", 0, 60);
