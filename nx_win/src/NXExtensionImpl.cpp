@@ -7,7 +7,6 @@ HHOOK NXExtensionImpl::m_hHook = 0x0;
 UF_MB_action_t NXExtensionImpl::m_actionTable[] =
 {
     {( char* )"RUN_EDITOR_ACTION", &NXExtensionImpl::RunEditorAction, 0x0},
-    {( char* )"ABOUT_ACTION", &NXExtensionImpl::AboutAction, 0x0},
     {0x0, 0x0, 0x0}
 };
 
@@ -58,36 +57,52 @@ void NXExtensionImpl::Initialize()
     }
 }
 
-void NXExtensionImpl::CheckContextIsValid()
+BaseExtension::Variant NXExtensionImpl::ExtractVariant()
 {
     if ( ::UF_ASSEM_ask_work_part() == NULL_TAG )
-        m_scriptEngine->throwError(
-            QString( "Work part doesn't exist. Create new or open existing part model." ) );
-}
-
-void NXExtensionImpl::CheckFirstSolidInPart()
-{
-    if ( !firstSolidFlag )
     {
-        tag_t tag_solid = NULL_TAG;;
-
-        ::UF_MODL_ask_object( UF_solid_type, UF_solid_body_subtype, &tag_solid );
-
-        if ( tag_solid != NULL_TAG )
-            firstSolidFlag = true;
+        QMessageBox::warning( GetTopWindow(), qApp->applicationName(),
+                              QString( "Work part doesn't exist. Create new or open existing part model." ),
+                              QMessageBox::Save | QMessageBox::No | QMessageBox::Cancel );
+        return Variant();
     }
-}
 
-void NXExtensionImpl::CheckPostprocess()
-{
-    globalTagPart = ::UF_PART_ask_display_part();
+    tag_t tagDisplayPart = ::UF_PART_ask_display_part();
 
-    if ( globalTagPart == NULL_TAG )
-        ::UF_PART_new( "model", 1 /*metric*/, &globalTagPart );
+    int number_of_exps;
+    tag_t* exps = nullptr;
+    UF_CALL( ::UF_MODL_ask_exps_of_part( tagDisplayPart, &number_of_exps, &exps ) );
 
-    firstSolidFlag = false;
-    CheckFirstSolidInPart();
+    char* name = nullptr;
+    UF_CALL( ::UF_MODL_ask_exp_tag_string( exps[0], &name ) );
 
-    if ( firstSolidFlag )
-        m_scriptEngine->throwError( QString( "Model has already exist." ) );
+    ::UF_free( name );
+    ::UF_free( exps );
+
+
+//    tag_t tagExpression = NULL_TAG;
+//    UF_CALL( ::UF_MODL_ask_object( UF_solid_type,
+//                                   UF_solid_body_subtype,
+//                                   &tagExpression ) );
+
+//    if ( tagExpression == NULL_TAG )
+//        return;
+//    else
+//    {
+//        do
+//        {
+//            int bodyType;
+//            UF_CALL( ::UF_MODL_ask_body_type( tagExpression, &bodyType ) );
+
+//            if ( bodyType == UF_MODL_SOLID_BODY )
+//                break;
+
+//            ::UF_MODL_ask_object( UF_solid_type,
+//                                  UF_solid_body_subtype,
+//                                  &tagExpression );
+//        } while ( tagExpression != NULL_TAG );
+//    }
+
+//    if ( tagExpression == NULL_TAG )
+//        return;
 }

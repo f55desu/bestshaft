@@ -103,7 +103,7 @@
     #include <QApplication>
     #include <QMessageBox>
     #include <QWidget>
-    #include <QJSEngine>
+    //    #include <QJSEngine>
 
     #include "EnableMemoryLeak.h"
 

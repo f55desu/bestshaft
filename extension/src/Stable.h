@@ -97,8 +97,8 @@
     #include <QLabel>
     #include <QMessageBox>
     #include <QFileDialog>
-    #include <QtXml>
-    #include <QJSEngine>
+    //    #include <QtXml>
+    //    #include <QJSEngine>
     //#include <QTextCodec>
 
     #include "EnableMemoryLeak.h"

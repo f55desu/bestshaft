@@ -8,26 +8,18 @@ QT += qml xml widgets
 CONFIG += staticlib
 
 HEADERS += \
-    src/BestShaftWindow.h \
     src/Stable.h \
     src/ExtensionWindow.h \
-    src/IAbstractModeler.h \
-    src/BaseExtension.h \
-    src/Syntaxhighlighter.h \
-    src/Point.h
+    src/BaseExtension.h
 
 SOURCES += \
-    src/BestShaftWindow.cpp \
     src/ExtensionWindow.cpp \
-    src/BaseExtension.cpp \
-    src/Postprocess.cpp \
-    src/Syntaxhighlighter.cpp
+    src/BaseExtension.cpp
 
 FORMS += \
-    src/BestShaftWindow.ui \
     src/ExtensionWindow.ui
 
-RESOURCES += resources.qrc
+#RESOURCES += resources.qrc
 
 TRANSLATIONS = ui/extension_ru.ts
 

@@ -23,6 +23,8 @@ DLLDESTDIR = ../$$DESTDIR/startup
 
 LIBS += -L../extension/$$DESTDIR
 
+DISTFILES = src/bestshaft.men
+
 CONFIG(debug, debug|release) {
   win32-msvc* {
 
@@ -61,30 +63,9 @@ SOURCES += \
     src/main.cpp \
     src/Windows.cpp \
     src/Callbacks.cpp \
-    src/NXExtensionImpl.cpp \
-    src/Pre/Preprocess.cpp \
-    src/nxUtils.cpp \
-    src/Post/SolidCreateProtrusionExtrude.cpp \
-    src/Post/SolidCreateBlock.cpp \
-    src/Post/SketchCreate.cpp \
-    src/Post/SelectObject.cpp \
-    src/Post/DumpAll.cpp \
-    src/Pre/SolidCreateProtrusionExtrudePre.cpp \
-    src/Pre/SolidCreateBlockPre.cpp \
-    src/Pre/TraverseObject.cpp \
-    src/Post/ConstraintsCreateCsysPlaneAxisPoint.cpp \
-    src/Post/SelectObjectFunction.cpp \
-    src/Pre/ConstraintsCreateCsysPlaneAxisPointPre.cpp \
-    src/Pre/ConstraintsCreateBaseCsysPre.cpp \
-    src/Pre/SketchCreateLine2PointsPre.cpp \
-    src/Post/SketchCreateLine2Points.cpp \
-    src/Post/ConstraintsCreateBaseCsys.cpp \
-    src/Post/ConstraintsCreateCsysPointDir.cpp \
-    src/Pre/SketchCreatePre.cpp \
-    src/Test.cpp \
-    src/NamingTest.cpp
+    src/NXExtensionImpl.cpp
 
-STARTUP_MENU_FILE = $$relative_path($$PWD/src/paratran.men,$$OUT_PWD)
+STARTUP_MENU_FILE = $$relative_path($$PWD/src/bestshaft.men,$$OUT_PWD)
 
 startupmenufile.target = $$system_path($$DLLDESTDIR/$$basename(STARTUP_MENU_FILE))
 win32:startupmenufile.commands = copy /Y $$system_path($$STARTUP_MENU_FILE) \

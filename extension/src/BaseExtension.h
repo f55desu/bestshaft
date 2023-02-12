@@ -27,6 +27,9 @@ public:
     static const QString HomePathEnvName;
 
 public:
+    typedef QMap<QString, double> Variant;
+
+public:
     BaseExtension& operator=( const BaseExtension& ) {}
 protected:
     BaseExtension();
@@ -41,12 +44,10 @@ public:
 public:
     void RunEditor();
 public:
-    void About();
-public:
     static bool GetModalState();
 
-public:
-    virtual void InitScriptEngine();
+//public:
+//    virtual void InitScriptEngine();
 
 protected:
     virtual void InitQt();
@@ -64,19 +65,15 @@ public:
     static Category& GetLogger();
 
 protected:
-    QString PostprocessScript( QString scriptText );
-protected:
-    virtual QString PreprocessModel() = 0;
-protected:
-    virtual QString Test() = 0;
-protected:
-    virtual void NamingTest() = 0;
+    virtual Variant ExtractVariant() = 0;
+//protected:
+//    virtual QString Test() = 0;
+//protected:
+//    virtual void NamingTest() = 0;
 
     friend class ExtensionWindow;
-    friend class BestShaftWindow;
 private:
     ExtensionWindow* m_extensionWindow;
-    BestShaftWindow* m_bestShaftWindow;
 
 protected:
     QWidget* m_topWindow;
@@ -88,6 +85,6 @@ protected:
     static Category& m_logger;
 protected:
     QString m_homePath;
-protected:
-    QJSEngine* m_scriptEngine;
+//protected:
+//    QJSEngine* m_scriptEngine;
 };

@@ -1,8 +1,6 @@
 #include "Stable.h"
 #include "BaseExtension.h"
 #include "ExtensionWindow.h"
-#include "BestShaftWindow.h"
-#include "IAbstractModeler.h"
 
 #include "../version.h"
 
@@ -11,10 +9,10 @@ Category& BaseExtension::m_logger = Category::getRoot();
 
 const QString BaseExtension::IniFileName = "extension.ini";
 const QString BaseExtension::LogFileName = "extension.log";
-const QString BaseExtension::HomePathEnvName = "PARATRAN_HOME_PATH";
+const QString BaseExtension::HomePathEnvName = "BESTSHAFT_HOME_PATH";
 
 BaseExtension::BaseExtension() :
-    m_topWindow( 0x0 ), m_extensionWindow( 0x0 ), m_bestShaftWindow( 0x0 ), m_scriptEngine( 0x0 )
+    m_extensionWindow( 0x0 ), m_topWindow( 0x0 )
 {
 }
 
@@ -34,28 +32,14 @@ void BaseExtension::RunEditor()
     InitQt();
 
     //Show modeless dialog
-    if ( m_bestShaftWindow == 0x0 )
+    if ( m_extensionWindow == 0x0 )
     {
-//        m_extensionWindow = new ExtensionWindow( GetTopWindow(), this );
-//        m_extensionWindow->setAttribute( Qt::WA_DeleteOnClose );
-//        m_extensionWindow->show();
-        m_bestShaftWindow = new BestShaftWindow( GetTopWindow(), this );
-        m_bestShaftWindow->setAttribute( Qt::WA_DeleteOnClose );
-        m_bestShaftWindow->show();
+        m_extensionWindow = new ExtensionWindow( GetTopWindow(), this );
+        m_extensionWindow->setAttribute( Qt::WA_DeleteOnClose );
+        m_extensionWindow->show();
     }
     else
-        m_bestShaftWindow->activateWindow();
-}
-void BaseExtension::About()
-{
-    InitQt();
-
-    //Show modal dialog
-    EnterModalLoop();
-    ExtensionWindow* w = new ExtensionWindow( GetTopWindow(), this );
-    w->setAttribute( Qt::WA_DeleteOnClose );
-    w->show();
-    ExitModalLoop();
+        m_extensionWindow->activateWindow();
 }
 
 void BaseExtension::InitQt()
@@ -63,7 +47,7 @@ void BaseExtension::InitQt()
     if ( qApp )
         return;
 
-    Q_INIT_RESOURCE( resources );
+    //Q_INIT_RESOURCE( resources );
 
     //Read options from ini file
     QSettings settings( m_iniFileName, QSettings::IniFormat );
@@ -97,7 +81,7 @@ void BaseExtension::InitQt()
     int argc = ( int )args.size();
     ( void )new QApplication( argc, &argv[0] );
 
-    InitScriptEngine();
+//    InitScriptEngine();
 }
 
 void BaseExtension::Initialize()
@@ -161,26 +145,6 @@ void BaseExtension::TermQt()
 
     //Terminate logger
     Category::shutdown();
-}
-
-void BaseExtension::InitScriptEngine()
-{
-    m_scriptEngine = new QJSEngine( this );
-    Q_CHECK_PTR( m_scriptEngine );
-
-    m_scriptEngine->installExtensions( QJSEngine::AllExtensions );
-
-    QJSValue globalObject = m_scriptEngine->globalObject();
-
-    QJSValue scriptModeler = m_scriptEngine->newQObject( this );
-    globalObject.setProperty( "Modeler", scriptModeler );
-
-    //m_scriptContext = m_scriptEngine->currentContext();
-    /*QJSValue globalAxisOX = QJSValue(m_scriptEngine,"globalAxisOX");
-    globalObject.setProperty("AXIS_OX",globalAxisOX);*/
-
-    /*QJSValue scriptFunction = m_scriptEngine->newFunction(TEST_Function);
-    globalObject.setProperty("TEST_Function",scriptFunction);*/
 }
 
 void BaseExtension::EnterModalLoop()
