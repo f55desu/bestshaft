@@ -30,20 +30,15 @@ private:
     static UF_MB_cb_status_t RunEditorAction( UF_MB_widget_t widget,
                                               UF_MB_data_t client_data,
                                               UF_MB_activated_button_p_t call_button );
-//private:
-//    static UF_MB_cb_status_t AboutAction( UF_MB_widget_t widget,
-//                                          UF_MB_data_t client_data,
-//                                          UF_MB_activated_button_p_t call_button );
 
-private:
     static LRESULT CALLBACK QtFilterProc( int nCode,
                                           WPARAM wParam,
                                           LPARAM lParam );
 
-private:
     QWidget* GetTopWindow();
-private:
+
     void InitQt();
+
 //protected:
 //    QString PreprocessModel();
 protected:

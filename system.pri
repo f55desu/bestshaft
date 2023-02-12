@@ -25,6 +25,23 @@ lessThan(QT_MAJOR_VERSION, 6) {
 
 include(config.pri)
 
+# Print paths defined in the config.pri file
+message( LOG4CPP_INCLUDE = $${LOG4CPP_INCLUDE} )
+message( LOG4CPP_LIB_DEBUG = $${LOG4CPP_LIB_DEBUG} )
+message( LOG4CPP_LIB_RELEASE = $${LOG4CPP_LIB_RELEASE} )
+message( MEMEORY_LEAK_DETECTOR_INCLUDE = $${MEMEORY_LEAK_DETECTOR_INCLUDE} )
+message( MEMEORY_LEAK_DETECTOR_LIB = $${MEMEORY_LEAK_DETECTOR_LIB} )
+message( CVS_PARSER_INCLUDE = $${CVS_PARSER_INCLUDE} )
+message( CVS_PARSER_LIB_DEBUG = $${CVS_PARSER_LIB_DEBUG} )
+message( CVS_PARSER_LIB_RELEASE = $${CVS_PARSER_LIB_RELEASE} )
+message( BOOST_INCLUDE = $${BOOST_INCLUDE} )
+message( BOOST_LIB_DEBUG = $${BOOST_LIB_DEBUG} )
+message( BOOST_LIB_RELEASE = $${BOOST_LIB_RELEASE} )
+message( SEINCLUDE = $${SEINCLUDE} )
+message( SETYPELIBS = $${SETYPELIBS} )
+message( NXINCLUDE = $${NXINCLUDE} )
+message( MSYS64 = $${MSYS64} )
+
 win32:!system($${MSYS64}sh -c echo >nul 2>&1):error("Unable to launch \"$${MSYS64}sh -c echo\" for test purpose. Probably MSYS64 variable is not correctly set. Check config.pri file.")
 
 REVISION = $$system(git rev-list --count HEAD)
