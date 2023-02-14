@@ -74,10 +74,32 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
     UF_CALL( ::UF_MODL_ask_exps_of_part( tagDisplayPart, &number_of_exps, &exps ) );
 
     char* name = nullptr;
-    UF_CALL( ::UF_MODL_ask_exp_tag_string( exps[0], &name ) );
+    double value = 0.0;
+
+    for (int i = 0; i < number_of_exps; i++)
+    {
+        value = 0.0;
+        UF_CALL( ::UF_MODL_ask_exp_tag_string( exps[i], &name ) );
+        QString string = QString(name);
+        QString before;
+        size_t pos = string.indexOf("=");
+        if (pos != -1)
+        {
+            before = string.left(pos);
+        }
+        else
+        {
+            before = string;
+        }
+        UF_CALL( ::UF_MODL_ask_exp_tag_value( exps[i], &value));
+        variant.insert(before, value);
+    }
 
     ::UF_free( name );
     ::UF_free( exps );
+
+    return variant;
+
 
 
 //    tag_t tagExpression = NULL_TAG;

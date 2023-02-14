@@ -91,7 +91,8 @@ UI_DIR = .ui
 INCLUDEPATH += $$MEMEORY_LEAK_DETECTOR_INCLUDE \
                $$CVS_PARSER_INCLUDE \
                $$LOG4CPP_INCLUDE \
-               $$BOOST_INCLUDE
+               $$BOOST_INCLUDE \
+               $$NXINCLUDE
 
 CONFIG(debug, debug|release) {
     DEFINES += DEBUG _DEBUG

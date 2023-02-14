@@ -72,16 +72,36 @@ void ExtensionWindow::on_addButton_clicked()
 {
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
-    tableWidget->setColumnCount( 5 ); // 5 columns
+    tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
     tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows ); // Selecting one row at once
     tableWidget->setSelectionMode( QAbstractItemView::MultiSelection ); // Multiply selection of rows
-    QStringList headersList = { "Var\\Par", "R1", "R2", "Fi", "Von Mises" };
+
+    QStringList headersList;
+
+    headersList.append("Var\\Par");
+    for (const auto &var : variant.keys())
+    {
+        headersList.append(QString(var));
+    }
+    headersList.append("Von Mises");
 
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
+    QTableWidgetItem *id = new QTableWidgetItem(QString::number(rowCount+1));
+    tableWidget->setItem(rowCount, 0, id);
+
+    int index = 0;
+    for (const auto &var : variant.keys())
+    {
+        QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
+        tableWidget->setItem(rowCount, index+1, item);
+        ++index;
+    }
+    QTableWidgetItem *item = new QTableWidgetItem("—");
+    tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
 }
 
 
@@ -93,7 +113,20 @@ void ExtensionWindow::on_applyButton_clicked()
 
 void ExtensionWindow::on_calculateButton_clicked()
 {
+    auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
+    for (int i = 0; i < selectedRows.count(); i++)
+    {
+        double someValue = 0.0;
+        someValue = calculateMaxTension();
+
+        int colCount = tableWidget->columnCount();
+        int selectedRow = selectedRows[i].row();
+        QTableWidgetItem *selectedItem;
+        selectedItem = new QTableWidgetItem(QString::number(someValue));
+
+        tableWidget->setItem(selectedRow, colCount - 1, selectedItem); // Set the Von Misses Col
+    }
 }
 
 
@@ -105,7 +138,20 @@ void ExtensionWindow::on_paraviewButton_clicked()
 
 void ExtensionWindow::on_deleteButton_clicked()
 {
+    QModelIndexList selection = tableWidget->selectionModel()->selectedRows();
 
+    for (int i = 0; i < selection.count(); i++)
+    {
+        int row = selection.at(i).row();
+        tableWidget->removeRow(row);
+    }
+}
+
+double ExtensionWindow::calculateMaxTension()
+{
+    srand(time(NULL));
+    double random_double = static_cast<double>(rand()) / RAND_MAX;
+    return random_double;
 }
 
 bool ExtensionWindow::eventFilter( QObject* obj, QEvent* e )

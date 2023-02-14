@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ui_ExtensionWindow.h"
+#include "uf_modl.h"
+#include "uf.h"
 
 #define MaxRecentFiles 5
 
@@ -29,6 +31,9 @@ private slots:
     void on_calculateButton_clicked();
     void on_paraviewButton_clicked();
     void on_deleteButton_clicked();
+
+protected:
+    double calculateMaxTension();
 
 //private:
 //    void createLanguageMenu();
