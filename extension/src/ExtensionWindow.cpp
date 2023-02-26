@@ -11,7 +11,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     // Selecting one row at once
     tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
     // Multiply selection of rows with ctrl
-    tableWidget->setSelectionMode(QAbstractItemView::ContiguousSelection);
+    tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
 
