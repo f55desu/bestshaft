@@ -12,5 +12,5 @@ BOOST_LIB_DEBUG = C:/vcpkg/installed/x64-windows/debug/lib
 BOOST_LIB_RELEASE = C:/vcpkg/installed/x64-windows/lib
 SEINCLUDE = C:/Program Files/Solid Edge ST7/SDK/include
 SETYPELIBS = C:/Program Files/Solid Edge ST7/Program
-NXINCLUDE = "C:/Program Files/Siemens/NX2007/UGOPEN/"
+NXINCLUDE = C:/Program Files/Siemens/NX2007/UGOPEN/
 MSYS64 = C:/msys64/usr/bin/

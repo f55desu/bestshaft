@@ -42,9 +42,8 @@ private:
 //protected:
 //    QString PreprocessModel();
 protected:
-    Variant variant;
-protected:
     Variant ExtractVariant();
+    void ApplyVariant(Variant variant);
 //public slots:
 //    void CheckContextIsValid();
 //public slots:

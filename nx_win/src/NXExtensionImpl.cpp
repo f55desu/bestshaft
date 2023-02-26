@@ -59,6 +59,7 @@ void NXExtensionImpl::Initialize()
 
 BaseExtension::Variant NXExtensionImpl::ExtractVariant()
 {
+    Variant variant;
     if ( ::UF_ASSEM_ask_work_part() == NULL_TAG )
     {
         QMessageBox::warning( GetTopWindow(), qApp->applicationName(),
@@ -126,5 +127,13 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
 //    }
 
 //    if ( tagExpression == NULL_TAG )
-//        return;
+    //        return;
+}
+
+void NXExtensionImpl::ApplyVariant(Variant variant)
+{
+    for (auto &var : variant)
+    {
+
+    }
 }

@@ -1,6 +1,9 @@
 *.user
 .qmake.stash
 version.h
+run_config.txt
+
+system.pro.user.*
 
 [Dd]ebug/
 [Rr]elease/

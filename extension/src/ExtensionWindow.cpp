@@ -8,6 +8,13 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     setupUi( this );
     installEventFilter( this );
 
+    // Selecting one row at once
+    tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    // Multiply selection of rows with ctrl
+    tableWidget->setSelectionMode(QAbstractItemView::ContiguousSelection);
+
+    connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
+
     on_addButton_clicked();
 }
 
@@ -73,8 +80,8 @@ void ExtensionWindow::on_addButton_clicked()
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
     tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
-    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows ); // Selecting one row at once
-    tableWidget->setSelectionMode( QAbstractItemView::MultiSelection ); // Multiply selection of rows
+//    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows ); // Selecting one row at once
+//    tableWidget->setSelectionMode( QAbstractItemView::MultiSelection ); // Multiply selection of rows
 
     QStringList headersList;
 
@@ -107,7 +114,14 @@ void ExtensionWindow::on_addButton_clicked()
 
 void ExtensionWindow::on_applyButton_clicked()
 {
+    BaseExtension::Variant variant;
+    auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
+    int columnsCount = tableWidget->columnCount();
+    for (int i = 0; i < columnsCount; i++)
+    {
+        // Takeout table information and add as variant
+    }
 }
 
 
@@ -145,6 +159,25 @@ void ExtensionWindow::on_deleteButton_clicked()
         int row = selection.at(i).row();
         tableWidget->removeRow(row);
     }
+}
+
+// Buttons to be disabled if action cannot be performed
+void ExtensionWindow::onMultiplySelection()
+{
+    // Get the selected ranges
+    QList<QTableWidgetSelectionRange> ranges = tableWidget->selectedRanges();
+
+    // Count the unique rows within the selected ranges
+    QSet<int> selectedRows;
+    foreach (QTableWidgetSelectionRange range, ranges)
+    {
+        for (int row = range.topRow(); row <= range.bottomRow(); ++row)
+        {
+            selectedRows.insert(row);
+        }
+    }
+
+    applyButton->setEnabled(selectedRows.count() < 1); // Can't apply multiply variants
 }
 
 double ExtensionWindow::calculateMaxTension()
