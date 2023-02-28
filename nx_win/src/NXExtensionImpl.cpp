@@ -130,10 +130,22 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
     //        return;
 }
 
-void NXExtensionImpl::ApplyVariant(Variant variant)
+void NXExtensionImpl::ApplyVariant(BaseExtension::Variant variant)
 {
-    for (auto &var : variant)
+    //tag_t tagDisplayPart = ::UF_PART_ask_display_part();
+    for (auto &var : variant.keys())
     {
+//        tag_t expression_tag;
+//        // Ask for expression tag by label first
+//        UF_CALL(::UF_MODL_ask_exp_tag_by_name(var.toStdString(), &expression_tag));
 
+        // Set new value for expression by providing an entire expression like 'exp=value'
+        QString exp = QString(var + "=" + QString::number((variant[var])));
+        QByteArray byteArray = exp.toStdString().c_str();
+        char *expC = byteArray.data();
+        UF_CALL(::UF_MODL_edit_exp(expC));
     }
+
+    // You call this routine after you use UF_MODL_import_exp, UF_MODL_edit_exp, and UF_MODL_move_feature.
+    UF_CALL(::UF_MODL_update());
 }

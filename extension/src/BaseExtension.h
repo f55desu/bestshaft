@@ -66,6 +66,7 @@ public:
 
 protected:
     virtual Variant ExtractVariant() = 0;
+    virtual void ApplyVariant(Variant variant) = 0;
 //protected:
 //    virtual QString Test() = 0;
 //protected:

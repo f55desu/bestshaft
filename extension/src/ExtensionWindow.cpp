@@ -115,13 +115,16 @@ void ExtensionWindow::on_addButton_clicked()
 void ExtensionWindow::on_applyButton_clicked()
 {
     BaseExtension::Variant variant;
-    auto selectedRows = tableWidget->selectionModel()->selectedRows();
+    int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
 
     int columnsCount = tableWidget->columnCount();
-    for (int i = 0; i < columnsCount; i++)
+    for (int i = 1; i < columnsCount; i++)
     {
-        // Takeout table information and add as variant
+        // Takeout table information and add to variant
+        variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
     }
+
+    m_extension->ApplyVariant(variant);
 }
 
 
@@ -177,7 +180,7 @@ void ExtensionWindow::onMultiplySelection()
         }
     }
 
-    applyButton->setEnabled(selectedRows.count() < 1); // Can't apply multiply variants
+    applyButton->setEnabled(selectedRows.count() == 1); // Can't apply multiply variants
 }
 
 double ExtensionWindow::calculateMaxTension()
