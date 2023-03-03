@@ -15,7 +15,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
 
     connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
 
-    on_addButton_clicked();
+    initilizeVariant();
     boldRow(0, tableWidget);
 }
 
@@ -78,6 +78,44 @@ void ExtensionWindow::on_actionExit_triggered()
 
 void ExtensionWindow::on_addButton_clicked()
 {
+    if(tableWidget->rowCount()<1)
+    {
+        initilizeVariant();
+        addButton->setEnabled(false);
+    }
+    else
+    {
+        BaseExtension::Variant variant;
+
+        int rowCount = tableWidget->rowCount();
+        tableWidget->insertRow( rowCount );
+        QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
+        tableWidget->setItem(rowCount, 0, id);
+
+        int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
+
+        for (int i = 1; i < tableWidget->columnCount()-1; i++)
+        {
+            // Takeout table information and add to variant
+            variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
+        }
+
+        int index = 0;
+        for (const auto &var : variant.keys())
+        {
+            QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
+            tableWidget->setItem(rowCount, index+1, item);
+            ++index;
+        }
+
+        QTableWidgetItem *item = new QTableWidgetItem("—");
+        item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
+        tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
+    }
+}
+
+void ExtensionWindow::initilizeVariant()
+{
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
     tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
@@ -107,9 +145,9 @@ void ExtensionWindow::on_addButton_clicked()
         ++index;
     }
     QTableWidgetItem *item = new QTableWidgetItem("—");
+    item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
     tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
 }
-
 
 void ExtensionWindow::on_applyButton_clicked()
 {
@@ -124,8 +162,7 @@ void ExtensionWindow::on_applyButton_clicked()
 
     boldRow(selectedRowId, tableWidget);
 
-    int columnsCount = tableWidget->columnCount();
-    for (int i = 1; i < columnsCount; i++)
+    for (int i = 1; i < tableWidget->columnCount()-1; i++)
     {
         // Takeout table information and add to variant
         variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
@@ -182,6 +219,9 @@ void ExtensionWindow::on_deleteButton_clicked()
     {
         tableWidget->removeRow(row);
     }
+
+    if(tableWidget->rowCount()<1)
+        addButton->setEnabled(true);
 }
 
 // Buttons to be disabled if action cannot be performed
@@ -200,6 +240,8 @@ void ExtensionWindow::onMultiplySelection()
         }
     }
 
+    deleteButton->setEnabled(selectedRows.count() >= 1); // Can't delete zero variants
+    addButton->setEnabled(selectedRows.count() == 1); // Can't copy multiply variants
     applyButton->setEnabled(selectedRows.count() == 1); // Can't apply multiply variants
 }
 
