@@ -81,8 +81,6 @@ void ExtensionWindow::on_addButton_clicked()
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
     tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
-//    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows ); // Selecting one row at once
-//    tableWidget->setSelectionMode( QAbstractItemView::MultiSelection ); // Multiply selection of rows
 
     QStringList headersList;
 
@@ -164,11 +162,24 @@ void ExtensionWindow::on_paraviewButton_clicked()
 
 void ExtensionWindow::on_deleteButton_clicked()
 {
-    QModelIndexList selection = tableWidget->selectionModel()->selectedRows();
-
-    for (int i = 0; i < selection.count(); i++)
+    // Delete all selected rows
+    QList<QTableWidgetItem*> selectedItems = tableWidget->selectedItems();
+    QVector<int> rowsToDelete;
+    int row = 0;
+    // Fill the vector with unique rows
+    for (QTableWidgetItem *item : selectedItems)
     {
-        int row = selection.at(i).row();
+        row = item->row();
+        if (!rowsToDelete.contains(row))
+        {
+            rowsToDelete.append(row);
+        }
+    }
+    // Sort the rows Id's
+    std::sort(rowsToDelete.begin(), rowsToDelete.end(), std::greater<int>());
+    // Delete them
+    for (int row : rowsToDelete)
+    {
         tableWidget->removeRow(row);
     }
 }
