@@ -16,6 +16,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
 
     on_addButton_clicked();
+    boldRow(0, tableWidget);
 }
 
 ExtensionWindow::~ExtensionWindow()
@@ -97,7 +98,7 @@ void ExtensionWindow::on_addButton_clicked()
 
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
-    QTableWidgetItem *id = new QTableWidgetItem(QString::number(rowCount+1));
+    QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
     tableWidget->setItem(rowCount, 0, id);
 
     int index = 0;
@@ -115,7 +116,15 @@ void ExtensionWindow::on_addButton_clicked()
 void ExtensionWindow::on_applyButton_clicked()
 {
     BaseExtension::Variant variant;
+    // Unbold all
+    for(int row = 0; row < tableWidget->rowCount(); ++row)
+    {
+        boldRow(row, tableWidget, false);
+    }
+
     int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
+
+    boldRow(selectedRowId, tableWidget);
 
     int columnsCount = tableWidget->columnCount();
     for (int i = 1; i < columnsCount; i++)
@@ -188,6 +197,18 @@ double ExtensionWindow::calculateMaxTension()
     srand(time(NULL));
     double random_double = static_cast<double>(rand()) / RAND_MAX;
     return random_double;
+}
+
+// Bold specific row
+void ExtensionWindow::boldRow(int rowId, QTableWidget* tableWidget, bool bold)
+{
+    for (int column = 0; column < tableWidget->columnCount(); ++column)
+    {
+        QTableWidgetItem *item = tableWidget->item(rowId, column);
+        QFont font = item->font();
+        font.setBold(bold);
+        item->setFont(font);
+    }
 }
 
 bool ExtensionWindow::eventFilter( QObject* obj, QEvent* e )

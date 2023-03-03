@@ -34,6 +34,7 @@ private slots:
 
 protected:
     double calculateMaxTension();
+    void boldRow(int rowId, QTableWidget* tableWidget, bool bold=true);
 
 //private:
 //    void createLanguageMenu();
