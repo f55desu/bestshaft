@@ -116,6 +116,8 @@ void ExtensionWindow::on_addButton_clicked()
 
 void ExtensionWindow::initilizeVariant()
 {
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
     tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
@@ -147,10 +149,16 @@ void ExtensionWindow::initilizeVariant()
     QTableWidgetItem *item = new QTableWidgetItem("—");
     item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
     tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
+
+    QApplication::restoreOverrideCursor();
 }
 
 void ExtensionWindow::on_applyButton_clicked()
 {
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+    applyButton->setEnabled(false);
+    QApplication::processEvents();
+
     BaseExtension::Variant variant;
     // Unbold all
     for(int row = 0; row < tableWidget->rowCount(); ++row)
@@ -169,17 +177,30 @@ void ExtensionWindow::on_applyButton_clicked()
     }
 
     m_extension->ApplyVariant(variant);
+
+    applyButton->setEnabled(true);
+    QApplication::restoreOverrideCursor();
 }
 
 
 void ExtensionWindow::on_calculateButton_clicked()
 {
+    QApplication::setOverrideCursor(Qt::BusyCursor);
+    calculateButton->setEnabled(false);
+    QApplication::processEvents();
+
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
+
+    if (selectedRows.count() < 1)
+    {
+        QMessageBox::information(nullptr, "Hint", "Select at least one variant to calculate.");
+    }
 
     for (int i = 0; i < selectedRows.count(); i++)
     {
         double someValue = 0.0;
         someValue = calculateMaxTension();
+        Sleep(1000);
 
         int colCount = tableWidget->columnCount();
         int selectedRow = selectedRows[i].row();
@@ -188,12 +209,26 @@ void ExtensionWindow::on_calculateButton_clicked()
 
         tableWidget->setItem(selectedRow, colCount - 1, selectedItem); // Set the Von Misses Col
     }
+
+    calculateButton->setEnabled(true);
+    QApplication::restoreOverrideCursor();
 }
 
 
 void ExtensionWindow::on_paraviewButton_clicked()
 {
+    QApplication::setOverrideCursor(Qt::BusyCursor);
 
+    auto selectedRows = tableWidget->selectionModel()->selectedRows();
+
+    if (selectedRows.count() < 1)
+    {
+        QMessageBox::information(nullptr, "Hint", "Select at least one variant to open in ParaView.");
+    }
+
+    // paraview code
+
+    QApplication::restoreOverrideCursor();
 }
 
 
