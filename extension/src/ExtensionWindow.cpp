@@ -14,6 +14,11 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
+    calculateButton->setToolTip("Select at least one variant to calculate.");
+    deleteButton->setToolTip("Select at least one variant to delete.");
+    applyButton->setToolTip("Select only one variant to apply.");
+    addButton->setToolTip("Select only one variant to copy.");
+    paraviewButton->setToolTip("Select at least one variant to open in ParaView.");
 
     initilizeVariant();
     boldRow(0, tableWidget);
@@ -191,16 +196,10 @@ void ExtensionWindow::on_calculateButton_clicked()
 
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
-    if (selectedRows.count() < 1)
-    {
-        QMessageBox::information(nullptr, "Hint", "Select at least one variant to calculate.");
-    }
-
     for (int i = 0; i < selectedRows.count(); i++)
     {
         double someValue = 0.0;
         someValue = calculateMaxTension();
-        Sleep(1000);
 
         int colCount = tableWidget->columnCount();
         int selectedRow = selectedRows[i].row();
@@ -220,11 +219,6 @@ void ExtensionWindow::on_paraviewButton_clicked()
     QApplication::setOverrideCursor(Qt::BusyCursor);
 
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
-
-    if (selectedRows.count() < 1)
-    {
-        QMessageBox::information(nullptr, "Hint", "Select at least one variant to open in ParaView.");
-    }
 
     // paraview code
 
@@ -275,6 +269,8 @@ void ExtensionWindow::onMultiplySelection()
         }
     }
 
+    paraviewButton->setEnabled(selectedRows.count() >= 1); // Can't open in ParaView zero variants
+    calculateButton->setEnabled(selectedRows.count() >= 1); // Can't calculate zero variants
     deleteButton->setEnabled(selectedRows.count() >= 1); // Can't delete zero variants
     addButton->setEnabled(selectedRows.count() == 1); // Can't copy multiply variants
     applyButton->setEnabled(selectedRows.count() == 1); // Can't apply multiply variants
