@@ -1,4 +1,5 @@
 #include "Stable.h"
+
 #include "BaseExtension.h"
 #include "ExtensionWindow.h"
 
@@ -144,6 +145,9 @@ void ExtensionWindow::on_calculateButton_clicked()
 
         tableWidget->setItem(selectedRow, colCount - 1, selectedItem); // Set the Von Misses Col
     }
+
+    BaseExtension::Variant variant = m_extension->ExtractVariant();
+    m_extension->CalculateMaxTension(variant);
 }
 
 

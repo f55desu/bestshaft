@@ -4,7 +4,14 @@ PATCH = 0
 
 TARGET = nx_win
 TEMPLATE = lib
+
+#CONFIG += c++11
+#CONFIG += link_pkgconfig
 CONFIG += shared
+
+#PKGCONFIG += CGAL
+#PKGCONFIG += CGAL_Qt5
+
 QT += qml widgets
 
 include(../system.pri)
@@ -17,7 +24,7 @@ LIBS += -L"$$NXINCLUDE"
 
 win32-msvc*: LIBS += user32.lib advapi32.lib
 
-LIBS += -lextension -llibufun -llibugopenint
+LIBS += -lextension -llibufun -llibugopenint -llibufun_cae
 
 DLLDESTDIR = ../$$DESTDIR/startup
 
@@ -31,12 +38,14 @@ CONFIG(debug, debug|release) {
     LIBS += -llog4cppd \
             -lcsvparser \
             -lmemoryleakdetector
+#            -ltet
 
     #Targets depend on
     PRE_TARGETDEPS += $$LOG4CPP_LIB_DEBUG/log4cppd.lib \
                       $$CVS_PARSER_LIB_DEBUG/csvparser.lib \
                       ../extension/$$DESTDIR/extension.lib \
                       $$MEMEORY_LEAK_DETECTOR_LIB/memoryleakdetector.lib
+#                      $$TETGEN_LIB_DEBUG/tet.lib
   }
 }
 
@@ -45,11 +54,13 @@ CONFIG(release, debug|release) {
 
     LIBS += -llog4cpp \
             -lcsvparser
+#            -ltetgen
 
     #Targets depend on
     PRE_TARGETDEPS += $$LOG4CPP_LIB_RELEASE/log4cpp.lib \
                       $$CVS_PARSER_LIB_RELEASE/csvparser.lib \
                       ../extension/$$DESTDIR/extension.lib
+#                      $$TETGEN_LIB_RELEASE/tet.lib
   }
 }
 
