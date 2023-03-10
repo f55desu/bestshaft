@@ -14,13 +14,13 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
 
     connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
-    calculateButton->setToolTip("Select at least one variant to calculate.");
-    deleteButton->setToolTip("Select at least one variant to delete.");
-    applyButton->setToolTip("Select only one variant to apply.");
-    addButton->setToolTip("Select only one variant to copy.");
-    paraviewButton->setToolTip("Select at least one variant to open in ParaView.");
+    calculateButton->setToolTip("Calculate selected variant(s) Von Mises");
+    deleteButton->setToolTip("Delete selected variant(s)");
+    applyButton->setToolTip("Apply selected variant to the current model");
+    addButton->setToolTip("Add a copy of selected variant or add a current variant applied to model");
+    paraviewButton->setToolTip("Open in ParaView selected variant(s)");
 
-    initilizeVariant();
+    on_addButton_clicked();
     boldRow(0, tableWidget);
 }
 
@@ -83,49 +83,186 @@ void ExtensionWindow::on_actionExit_triggered()
 
 void ExtensionWindow::on_addButton_clicked()
 {
-    if(tableWidget->rowCount()<1)
+    BaseExtension::Variant variant1 = m_extension->ExtractVariant();
+    BaseExtension::Variant variant2;
+
+    int rowCount = tableWidget->rowCount();
+
+
+    int selectedRowId = -1;
+    if (rowCount > 0)
     {
-        initilizeVariant();
-        addButton->setEnabled(false);
+        try {
+            selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
+        } catch (...) {
+            selectedRowId = -1;
+        }
+        if (selectedRowId > -1) // Variable has been re-initilized, row was selected
+        {
+            tableWidget->insertRow( rowCount );
+            QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
+            tableWidget->setItem(rowCount, 0, id);
+
+            for (int i = 1; i < tableWidget->columnCount()-1; i++)
+            {
+                // Takeout table information and add to variant
+                variant2.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
+            }
+
+            BaseExtension::Variant::const_iterator it1 = variant1.constBegin();
+            BaseExtension::Variant::const_iterator it2 = variant2.constBegin();
+
+            BaseExtension::Variant intersection;
+
+            while (it1 != variant1.constEnd() && it2 != variant2.constEnd())
+            {
+                    if (it1.key() < it2.key()) {
+                        it1++;
+                    } else if (it2.key() < it1.key()) {
+                        it2++;
+                    }
+                    else
+                    {
+                        intersection.insert(it1.key(), it1.value());
+                        it1++;
+                        it2++;
+                    }
+            }
+
+            BaseExtension::Variant notInIntersection;
+
+            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
+            {
+                if (!intersection.contains(it1.key()))
+                {
+                    notInIntersection.insert(it1.key(), it1.value());
+                }
+            }
+
+            std::list<QString> notInIntersectionHeaders;
+            std::list<double> notInIntersectionValues;
+
+            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
+            {
+                if (!intersection.contains(it1.key()))
+                {
+                    notInIntersectionHeaders.push_back(it1.key());
+                    notInIntersectionValues.push_back(it1.value());
+                }
+            }
+
+            std::list<QString> headersList;
+
+            // Take current headerList
+            for (int i = 0; i < tableWidget->columnCount(); i++)
+            {
+                headersList.push_back(tableWidget->takeHorizontalHeaderItem(i)->text());
+            }
+
+            auto it = headersList.begin();
+
+            std::advance(it, tableWidget->columnCount()); // advance iterator to the penultimate element
+            headersList.insert(it, notInIntersectionHeaders.begin(), notInIntersectionHeaders.end()); // Append parameters that are not in intersection
+
+            QStringList headerStringList;
+            std::copy(headersList.begin(), headersList.end(), std::back_inserter(headerStringList));
+            tableWidget->setHorizontalHeaderLabels( headerStringList ); // Table headers
+
+            for (const auto &var : intersection.keys())
+            {
+                QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[var]));
+                for (int i = 0; i < tableWidget->columnCount(); i++)
+                {
+                    // Find the column to which the value belongs
+                    if (tableWidget->horizontalHeaderItem(i)->text() == var)
+                    {
+                        tableWidget->setItem(rowCount, i, item);
+                    }
+                }
+            }
+
+            for (const auto &val : notInIntersection.keys())
+            {
+                QTableWidgetItem *item = new QTableWidgetItem(QString::number(notInIntersection[val]));
+                for (int i = 0; i < tableWidget->columnCount(); i++)
+                {
+                    // Find the column to which the value belongs
+                    if (tableWidget->horizontalHeaderItem(i)->text() == val && i!=0 && i!=tableWidget->columnCount()-1)
+                    {
+                        tableWidget->setItem(rowCount, i, item);
+                        for(int row = 0; row < tableWidget->rowCount()-1; row++)
+                        {
+                            QTableWidgetItem *blank = new QTableWidgetItem("—");
+                            tableWidget->setItem(row, i, blank);
+                        }
+                    }
+                }
+            }
+
+            QTableWidgetItem *item = new QTableWidgetItem("—");
+            item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
+            qDebug() << "Columns: " << tableWidget->columnCount();
+            tableWidget->setItem(rowCount, tableWidget->columnCount()-1, item); // Cтавится прочерк у Von Mises.
+        }
+        else
+        {
+            initilizeVariant();
+        }
     }
     else
     {
-        BaseExtension::Variant variant;
-
-        int rowCount = tableWidget->rowCount();
-        tableWidget->insertRow( rowCount );
-        QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
-        tableWidget->setItem(rowCount, 0, id);
-
-        int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
-
-        for (int i = 1; i < tableWidget->columnCount()-1; i++)
-        {
-            // Takeout table information and add to variant
-            variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
-        }
-
-        int index = 0;
-        for (const auto &var : variant.keys())
-        {
-            QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
-            tableWidget->setItem(rowCount, index+1, item);
-            ++index;
-        }
-
-        QTableWidgetItem *item = new QTableWidgetItem("—");
-        item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-        tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
+        initilizeVariant();
     }
+
+//    if(tableWidget->selectionModel()->selectedRows().count() == 1)
+//    {
+//        BaseExtension::Variant variant;
+
+//        int rowCount = tableWidget->rowCount();
+//        tableWidget->insertRow( rowCount );
+//        QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
+//        tableWidget->setItem(rowCount, 0, id);
+
+//        int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
+
+//        for (int i = 1; i < tableWidget->columnCount()-1; i++)
+//        {
+//            // Takeout table information and add to variant
+//            variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
+//        }
+
+//        int index = 0;
+//        for (const auto &var : variant.keys())
+//        {
+//            QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
+//            tableWidget->setItem(rowCount, index+1, item);
+//            ++index;
+//        }
+
+//        QTableWidgetItem *item = new QTableWidgetItem("—");
+//        item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
+//        tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
+//    }
+//    else
+//    {
+//        initilizeVariant();
+//    }
 }
 
 void ExtensionWindow::initilizeVariant()
 {
     QApplication::setOverrideCursor(Qt::BusyCursor);
 
+    int colCountOld = tableWidget->columnCount();
+
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
     tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
+
+    if (colCountOld != tableWidget->columnCount())
+    {
+
+    }
 
     QStringList headersList;
 
@@ -144,16 +281,16 @@ void ExtensionWindow::initilizeVariant()
     QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
     tableWidget->setItem(rowCount, 0, id);
 
-    int index = 0;
+    int index = 1;
     for (const auto &var : variant.keys())
     {
         QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
-        tableWidget->setItem(rowCount, index+1, item);
+        tableWidget->setItem(rowCount, index, item);
         ++index;
     }
     QTableWidgetItem *item = new QTableWidgetItem("—");
     item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-    tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
+    tableWidget->setItem(rowCount, index, item); // Cтавится прочерк у Von Mises.
 
     QApplication::restoreOverrideCursor();
 }
@@ -272,7 +409,7 @@ void ExtensionWindow::onMultiplySelection()
     paraviewButton->setEnabled(selectedRows.count() >= 1); // Can't open in ParaView zero variants
     calculateButton->setEnabled(selectedRows.count() >= 1); // Can't calculate zero variants
     deleteButton->setEnabled(selectedRows.count() >= 1); // Can't delete zero variants
-    addButton->setEnabled(selectedRows.count() == 1); // Can't copy multiply variants
+    addButton->setEnabled(selectedRows.count() <= 1); // Can't copy multiply variants
     applyButton->setEnabled(selectedRows.count() == 1); // Can't apply multiply variants
 }
 

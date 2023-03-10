@@ -41,10 +41,10 @@
      <item>
       <widget class="QPushButton" name="addButton">
        <property name="enabled">
-        <bool>false</bool>
+        <bool>true</bool>
        </property>
        <property name="text">
-        <string>Add Copy</string>
+        <string>Add</string>
        </property>
       </widget>
      </item>
