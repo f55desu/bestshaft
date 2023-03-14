@@ -109,100 +109,243 @@ void ExtensionWindow::on_addButton_clicked()
                 variant2.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
             }
 
-            BaseExtension::Variant::const_iterator it1 = variant1.constBegin();
-            BaseExtension::Variant::const_iterator it2 = variant2.constBegin();
-
-            BaseExtension::Variant intersection;
-
-            while (it1 != variant1.constEnd() && it2 != variant2.constEnd())
+            std::map<QString, double> stdmap1;
+            for (auto it = variant1.constBegin(); it != variant1.constEnd(); ++it)
             {
-                    if (it1.key() < it2.key()) {
-                        it1++;
-                    } else if (it2.key() < it1.key()) {
-                        it2++;
-                    }
-                    else
-                    {
-                        intersection.insert(it1.key(), it1.value());
-                        it1++;
-                        it2++;
-                    }
+                stdmap1.insert(std::make_pair(it.key(), it.value()));
+            }
+            std::map<QString, double> stdmap2;
+            for (auto it = variant2.constBegin(); it != variant2.constEnd(); ++it)
+            {
+                stdmap2.insert(std::make_pair(it.key(), it.value()));
             }
 
-            BaseExtension::Variant notInIntersection;
+            auto compare = [](auto& x, auto& y) {
+                return x.first < y.first;
+            };
 
-            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
+            // Setting an intersection between model and seleceted variants
+            std::vector<std::pair<QString, double>> intersection;
+
+            std::set_intersection(stdmap1.begin(), stdmap1.end(),
+                                  stdmap2.begin(), stdmap2.end(),
+                                  std::back_inserter(intersection), compare);
+
+            // Setting difference between model and selected variants
+            std::vector<std::pair<QString, double>> differenceV1V2;
+
+            std::set_difference(stdmap1.begin(), stdmap1.end(),
+                                stdmap2.begin(), stdmap2.end(),
+                                std::back_inserter(differenceV1V2), compare);
+
+            // Setting difference between selected and model variants
+            std::vector<std::pair<QString, double>> differenceV2V1;
+
+            std::set_difference(stdmap2.begin(), stdmap2.end(),
+                                stdmap1.begin(), stdmap1.end(),
+                                std::back_inserter(differenceV2V1), compare);
+
+//            for (int i = 0; i < intersection.size(); i++)
+//            {
+//                qDebug() << intersection[i].first << intersection[i].second << "\n";
+//            }
+
+//            for (int i = 0; i < differenceV1V2.size(); i++)
+//            {
+//                qDebug() << differenceV1V2[i].first << differenceV1V2[i].second << "\n";
+//            }
+
+//            for (int i = 0; i < differenceV2V1.size(); i++)
+//            {
+//                qDebug() << differenceV2V1[i].first << differenceV2V1[i].second << "\n";
+//            }
+
+            QStringList headers;
+            headers.append("Var\Par");
+            for (int i = 0; i < intersection.size(); i++)
             {
-                if (!intersection.contains(it1.key()))
+                headers.append(intersection[i].first);
+            }
+            headers.append("Von Mises");
+
+            if (!differenceV1V2.empty())
+            {
+                // Add columns
+                for (int i = 0; i < differenceV1V2.size(); i++)
                 {
-                    notInIntersection.insert(it1.key(), it1.value());
+                    headers.insert(headers.size()-1, differenceV1V2[i].first);
                 }
-            }
-
-            std::list<QString> notInIntersectionHeaders;
-            std::list<double> notInIntersectionValues;
-
-            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
-            {
-                if (!intersection.contains(it1.key()))
+                tableWidget->setColumnCount(headers.count());
+                tableWidget->setHorizontalHeaderLabels( headers );
+                for (int i = 0; i < differenceV1V2.size(); i++)
                 {
-                    notInIntersectionHeaders.push_back(it1.key());
-                    notInIntersectionValues.push_back(it1.value());
-                }
-            }
-
-            std::list<QString> headersList;
-
-            // Take current headerList
-            for (int i = 0; i < tableWidget->columnCount(); i++)
-            {
-                headersList.push_back(tableWidget->takeHorizontalHeaderItem(i)->text());
-            }
-
-            auto it = headersList.begin();
-
-            std::advance(it, tableWidget->columnCount()); // advance iterator to the penultimate element
-            headersList.insert(it, notInIntersectionHeaders.begin(), notInIntersectionHeaders.end()); // Append parameters that are not in intersection
-
-            QStringList headerStringList;
-            std::copy(headersList.begin(), headersList.end(), std::back_inserter(headerStringList));
-            tableWidget->setHorizontalHeaderLabels( headerStringList ); // Table headers
-
-            for (const auto &var : intersection.keys())
-            {
-                QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[var]));
-                for (int i = 0; i < tableWidget->columnCount(); i++)
-                {
-                    // Find the column to which the value belongs
-                    if (tableWidget->horizontalHeaderItem(i)->text() == var)
+                    for (int j = 0; j < tableWidget->columnCount(); j++)
                     {
-                        tableWidget->setItem(rowCount, i, item);
-                    }
-                }
-            }
-
-            for (const auto &val : notInIntersection.keys())
-            {
-                QTableWidgetItem *item = new QTableWidgetItem(QString::number(notInIntersection[val]));
-                for (int i = 0; i < tableWidget->columnCount(); i++)
-                {
-                    // Find the column to which the value belongs
-                    if (tableWidget->horizontalHeaderItem(i)->text() == val && i!=0 && i!=tableWidget->columnCount()-1)
-                    {
-                        tableWidget->setItem(rowCount, i, item);
-                        for(int row = 0; row < tableWidget->rowCount()-1; row++)
+                        if(tableWidget->horizontalHeaderItem(j)->text() == differenceV1V2[i].first)
                         {
-                            QTableWidgetItem *blank = new QTableWidgetItem("—");
-                            tableWidget->setItem(row, i, blank);
+                            QTableWidgetItem *item = new QTableWidgetItem(QString::number(differenceV1V2[i].second));
+                            tableWidget->setItem(tableWidget->rowCount()-1, j, item);
+                            for (int k = 0; k < tableWidget->rowCount()-1; k++)
+                            {
+                                QTableWidgetItem *dash = new QTableWidgetItem("—");
+                                tableWidget->setItem(k, j, dash);
+                            }
                         }
                     }
                 }
             }
 
-            QTableWidgetItem *item = new QTableWidgetItem("—");
-            item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-            qDebug() << "Columns: " << tableWidget->columnCount();
-            tableWidget->setItem(rowCount, tableWidget->columnCount()-1, item); // Cтавится прочерк у Von Mises.
+            if (!differenceV2V1.empty())
+            {
+                // Add a '-' into row
+                for (int i = 0; i < differenceV2V1.size(); i++)
+                {
+                    headers.insert(headers.size()-1, differenceV2V1[i].first);
+                }
+                tableWidget->setColumnCount(headers.count());
+                tableWidget->setHorizontalHeaderLabels( headers );
+
+                for (int i = 0; i < differenceV2V1.size(); i++)
+                {
+                    for (int j = 0; j < tableWidget->columnCount(); j++)
+                    {
+                        if(tableWidget->horizontalHeaderItem(j)->text() == differenceV2V1[i].first)
+                        {
+                            for (int k = 0; k < tableWidget->rowCount()-1; k++)
+                            {
+                                QTableWidgetItem *dash = new QTableWidgetItem("—");
+                                tableWidget->setItem(k, j, dash);
+                            }
+                        }
+                    }
+                }
+            }
+
+            tableWidget->setColumnCount(headers.count());
+            tableWidget->setHorizontalHeaderLabels( headers );
+
+            for (int i = 0; i < intersection.size(); i++)
+            {
+                for(int j = 0; j < tableWidget->columnCount(); j++)
+                {
+                    if (tableWidget->horizontalHeaderItem(j)->text() == intersection[i].first)
+                    {
+                        QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[i].second));
+                        tableWidget->setItem(tableWidget->rowCount()-1, i+1, item);
+                    }
+                }
+            }
+
+            for (int i = 0; i < tableWidget->rowCount()+1; ++i){
+                QTableWidgetItem *vonmises = new QTableWidgetItem("—");
+                vonmises->setFlags(vonmises->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
+                tableWidget->setItem(i, tableWidget->columnCount()-1, vonmises); // Cтавится прочерк у Von Mises.
+            }
+
+//            tableWidget->insertRow( rowCount );
+//            QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
+//            tableWidget->setItem(rowCount, 0, id);
+
+//            for (int i = 1; i < tableWidget->columnCount()-1; i++)
+//            {
+//                // Takeout table information and add to variant
+//                variant2.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
+//            }
+
+//            BaseExtension::Variant::const_iterator it1 = variant1.constBegin();
+//            BaseExtension::Variant::const_iterator it2 = variant2.constBegin();
+
+//            BaseExtension::Variant intersection;
+
+//            while (it1 != variant1.constEnd() && it2 != variant2.constEnd())
+//            {
+//                    if (it1.key() < it2.key()) {
+//                        it1++;
+//                    } else if (it2.key() < it1.key()) {
+//                        it2++;
+//                    }
+//                    else
+//                    {
+//                        intersection.insert(it1.key(), it1.value());
+//                        it1++;
+//                        it2++;
+//                    }
+//            }
+
+//            BaseExtension::Variant notInIntersection;
+
+//            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
+//            {
+//                if (!intersection.contains(it1.key()))
+//                {
+//                    notInIntersection.insert(it1.key(), it1.value());
+//                }
+//            }
+
+//            std::list<QString> notInIntersectionHeaders;
+//            std::list<double> notInIntersectionValues;
+
+//            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
+//            {
+//                if (!intersection.contains(it1.key()))
+//                {
+//                    notInIntersectionHeaders.push_back(it1.key());
+//                    notInIntersectionValues.push_back(it1.value());
+//                }
+//            }
+
+//            std::list<QString> headersList;
+
+//            // Take current headerList
+//            for (int i = 0; i < tableWidget->columnCount(); i++)
+//            {
+//                headersList.push_back(tableWidget->takeHorizontalHeaderItem(i)->text());
+//            }
+
+//            auto it = headersList.begin();
+
+//            std::advance(it, tableWidget->columnCount()); // advance iterator to the penultimate element
+//            headersList.insert(it, notInIntersectionHeaders.begin(), notInIntersectionHeaders.end()); // Append parameters that are not in intersection
+
+//            QStringList headerStringList;
+//            std::copy(headersList.begin(), headersList.end(), std::back_inserter(headerStringList));
+//            tableWidget->setHorizontalHeaderLabels( headerStringList ); // Table headers
+
+//            for (const auto &var : intersection.keys())
+//            {
+//                QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[var]));
+//                for (int i = 0; i < tableWidget->columnCount(); i++)
+//                {
+//                    // Find the column to which the value belongs
+//                    if (tableWidget->horizontalHeaderItem(i)->text() == var)
+//                    {
+//                        tableWidget->setItem(rowCount, i, item);
+//                    }
+//                }
+//            }
+
+//            for (const auto &val : notInIntersection.keys())
+//            {
+//                QTableWidgetItem *item = new QTableWidgetItem(QString::number(notInIntersection[val]));
+//                for (int i = 0; i < tableWidget->columnCount(); i++)
+//                {
+//                    // Find the column to which the value belongs
+//                    if (tableWidget->horizontalHeaderItem(i)->text() == val && i!=0 && i!=tableWidget->columnCount()-1)
+//                    {
+//                        tableWidget->setItem(rowCount, i, item);
+//                        for(int row = 0; row < tableWidget->rowCount()-1; row++)
+//                        {
+//                            QTableWidgetItem *blank = new QTableWidgetItem("—");
+//                            tableWidget->setItem(row, i, blank);
+//                        }
+//                    }
+//                }
+//            }
+
+//            QTableWidgetItem *item = new QTableWidgetItem("—");
+//            item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
+//            qDebug() << "Columns: " << tableWidget->columnCount();
+//            tableWidget->setItem(rowCount, tableWidget->columnCount()-1, item); // Cтавится прочерк у Von Mises.
         }
         else
         {
