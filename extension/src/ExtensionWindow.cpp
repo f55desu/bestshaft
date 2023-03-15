@@ -160,6 +160,8 @@ void ExtensionWindow::on_addButton_clicked()
 //                qDebug() << differenceV2V1[i].first << differenceV2V1[i].second << "\n";
 //            }
 
+            BaseExtension::Variant variantFinal;
+
             QStringList headers;
             headers.append("Var\Par");
             for (int i = 0; i < intersection.size(); i++)
@@ -183,6 +185,7 @@ void ExtensionWindow::on_addButton_clicked()
                     {
                         if(tableWidget->horizontalHeaderItem(j)->text() == differenceV1V2[i].first)
                         {
+                            variantFinal.insert(differenceV1V2[i].first, differenceV1V2[i].second);
                             QTableWidgetItem *item = new QTableWidgetItem(QString::number(differenceV1V2[i].second));
                             tableWidget->setItem(tableWidget->rowCount()-1, j, item);
                             for (int k = 0; k < tableWidget->rowCount()-1; k++)
@@ -230,122 +233,25 @@ void ExtensionWindow::on_addButton_clicked()
                 {
                     if (tableWidget->horizontalHeaderItem(j)->text() == intersection[i].first)
                     {
+                        variantFinal.insert(intersection[i].first, intersection[i].second);
                         QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[i].second));
                         tableWidget->setItem(tableWidget->rowCount()-1, i+1, item);
                     }
                 }
             }
 
-            for (int i = 0; i < tableWidget->rowCount()+1; ++i){
-                QTableWidgetItem *vonmises = new QTableWidgetItem("—");
-                vonmises->setFlags(vonmises->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-                tableWidget->setItem(i, tableWidget->columnCount()-1, vonmises); // Cтавится прочерк у Von Mises.
+            m_extension->variants.append(variantFinal);
+            updateTableRows(m_extension->variants);
+
+            for (int i = 0; i < tableWidget->rowCount()+1; ++i)
+            {
+                if (!tableWidget->item(i, tableWidget->columnCount()-1))
+                {
+                    QTableWidgetItem *vonmises = new QTableWidgetItem("—");
+                    vonmises->setFlags(vonmises->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
+                    tableWidget->setItem(i, tableWidget->columnCount()-1, vonmises); // Cтавится прочерк у Von Mises.
+                }
             }
-
-//            tableWidget->insertRow( rowCount );
-//            QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
-//            tableWidget->setItem(rowCount, 0, id);
-
-//            for (int i = 1; i < tableWidget->columnCount()-1; i++)
-//            {
-//                // Takeout table information and add to variant
-//                variant2.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
-//            }
-
-//            BaseExtension::Variant::const_iterator it1 = variant1.constBegin();
-//            BaseExtension::Variant::const_iterator it2 = variant2.constBegin();
-
-//            BaseExtension::Variant intersection;
-
-//            while (it1 != variant1.constEnd() && it2 != variant2.constEnd())
-//            {
-//                    if (it1.key() < it2.key()) {
-//                        it1++;
-//                    } else if (it2.key() < it1.key()) {
-//                        it2++;
-//                    }
-//                    else
-//                    {
-//                        intersection.insert(it1.key(), it1.value());
-//                        it1++;
-//                        it2++;
-//                    }
-//            }
-
-//            BaseExtension::Variant notInIntersection;
-
-//            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
-//            {
-//                if (!intersection.contains(it1.key()))
-//                {
-//                    notInIntersection.insert(it1.key(), it1.value());
-//                }
-//            }
-
-//            std::list<QString> notInIntersectionHeaders;
-//            std::list<double> notInIntersectionValues;
-
-//            for (auto it1 = variant1.constBegin(); it1 != variant1.constEnd(); ++it1)
-//            {
-//                if (!intersection.contains(it1.key()))
-//                {
-//                    notInIntersectionHeaders.push_back(it1.key());
-//                    notInIntersectionValues.push_back(it1.value());
-//                }
-//            }
-
-//            std::list<QString> headersList;
-
-//            // Take current headerList
-//            for (int i = 0; i < tableWidget->columnCount(); i++)
-//            {
-//                headersList.push_back(tableWidget->takeHorizontalHeaderItem(i)->text());
-//            }
-
-//            auto it = headersList.begin();
-
-//            std::advance(it, tableWidget->columnCount()); // advance iterator to the penultimate element
-//            headersList.insert(it, notInIntersectionHeaders.begin(), notInIntersectionHeaders.end()); // Append parameters that are not in intersection
-
-//            QStringList headerStringList;
-//            std::copy(headersList.begin(), headersList.end(), std::back_inserter(headerStringList));
-//            tableWidget->setHorizontalHeaderLabels( headerStringList ); // Table headers
-
-//            for (const auto &var : intersection.keys())
-//            {
-//                QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[var]));
-//                for (int i = 0; i < tableWidget->columnCount(); i++)
-//                {
-//                    // Find the column to which the value belongs
-//                    if (tableWidget->horizontalHeaderItem(i)->text() == var)
-//                    {
-//                        tableWidget->setItem(rowCount, i, item);
-//                    }
-//                }
-//            }
-
-//            for (const auto &val : notInIntersection.keys())
-//            {
-//                QTableWidgetItem *item = new QTableWidgetItem(QString::number(notInIntersection[val]));
-//                for (int i = 0; i < tableWidget->columnCount(); i++)
-//                {
-//                    // Find the column to which the value belongs
-//                    if (tableWidget->horizontalHeaderItem(i)->text() == val && i!=0 && i!=tableWidget->columnCount()-1)
-//                    {
-//                        tableWidget->setItem(rowCount, i, item);
-//                        for(int row = 0; row < tableWidget->rowCount()-1; row++)
-//                        {
-//                            QTableWidgetItem *blank = new QTableWidgetItem("—");
-//                            tableWidget->setItem(row, i, blank);
-//                        }
-//                    }
-//                }
-//            }
-
-//            QTableWidgetItem *item = new QTableWidgetItem("—");
-//            item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-//            qDebug() << "Columns: " << tableWidget->columnCount();
-//            tableWidget->setItem(rowCount, tableWidget->columnCount()-1, item); // Cтавится прочерк у Von Mises.
         }
         else
         {
@@ -356,65 +262,52 @@ void ExtensionWindow::on_addButton_clicked()
     {
         initilizeVariant();
     }
-
-//    if(tableWidget->selectionModel()->selectedRows().count() == 1)
-//    {
-//        BaseExtension::Variant variant;
-
-//        int rowCount = tableWidget->rowCount();
-//        tableWidget->insertRow( rowCount );
-//        QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
-//        tableWidget->setItem(rowCount, 0, id);
-
-//        int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
-
-//        for (int i = 1; i < tableWidget->columnCount()-1; i++)
-//        {
-//            // Takeout table information and add to variant
-//            variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
-//        }
-
-//        int index = 0;
-//        for (const auto &var : variant.keys())
-//        {
-//            QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
-//            tableWidget->setItem(rowCount, index+1, item);
-//            ++index;
-//        }
-
-//        QTableWidgetItem *item = new QTableWidgetItem("—");
-//        item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-//        tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
-//    }
-//    else
-//    {
-//        initilizeVariant();
-//    }
 }
 
 void ExtensionWindow::initilizeVariant()
 {
     QApplication::setOverrideCursor(Qt::BusyCursor);
 
-    int colCountOld = tableWidget->columnCount();
-
     BaseExtension::Variant variant = m_extension->ExtractVariant();
+    m_extension->variants.append(variant);
 
     tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
 
-    if (colCountOld != tableWidget->columnCount())
-    {
-
-    }
-
     QStringList headersList;
 
-    headersList.append("Var\\Par");
-    for (const auto &var : variant.keys())
+    if(tableWidget->columnCount() < 1)
     {
-        headersList.append(QString(var));
+        for (int i = 0; i < tableWidget->columnCount(); i++)
+        {
+            headersList.append(tableWidget->horizontalHeaderItem(i)->text());
+        }
+
+        bool inHeadersList = false;
+        for (const auto &var : variant.keys())
+        {
+            for (int i = 0; i < headersList.count(); i++)
+            {
+                if (headersList[i] == var)
+                {
+                    inHeadersList = true;
+                }
+            }
+
+            if(!inHeadersList)
+            {
+                headersList.insert(headersList.count()-2, var);
+            }
+        }
     }
-    headersList.append("Von Mises");
+    else
+    {
+        headersList.append("Var\\Par");
+        for (const auto &var : variant.keys())
+        {
+            headersList.append(QString(var));
+        }
+        headersList.append("Von Mises");
+    }
 
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
@@ -423,17 +316,20 @@ void ExtensionWindow::initilizeVariant()
     tableWidget->insertRow( rowCount );
     QTableWidgetItem *id = new QTableWidgetItem("Variant #" + QString::number(rowCount+1));
     tableWidget->setItem(rowCount, 0, id);
-
-    int index = 1;
     for (const auto &var : variant.keys())
     {
-        QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
-        tableWidget->setItem(rowCount, index, item);
-        ++index;
+        for (int i = 0; i < tableWidget->columnCount(); i++)
+        {
+            if (tableWidget->horizontalHeaderItem(i)->text() == var)
+            {
+                QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
+                tableWidget->setItem(rowCount, i, item);
+            }
+        }
     }
     QTableWidgetItem *item = new QTableWidgetItem("—");
     item->setFlags(item->flags() & !Qt::ItemIsEditable); // Set flag to be non-editable
-    tableWidget->setItem(rowCount, index, item); // Cтавится прочерк у Von Mises.
+    tableWidget->setItem(rowCount, tableWidget->columnCount()-1, item); // Cтавится прочерк у Von Mises.
 
     QApplication::restoreOverrideCursor();
 }
@@ -561,6 +457,31 @@ double ExtensionWindow::calculateMaxTension()
     srand(time(NULL));
     double random_double = static_cast<double>(rand()) / RAND_MAX;
     return random_double;
+}
+
+void ExtensionWindow::updateTableRows(QList<BaseExtension::Variant> variants)
+{
+    for (int i = 0; i < variants.count(); i++)
+    {
+        for (int j = 0; j < tableWidget->rowCount(); j++)
+        {
+            BaseExtension::Variant variant = variants[i];
+            for (auto it = variant.begin(); it != variant.end(); it++)
+            {
+                for (int k = 0; k < tableWidget->columnCount(); k++)
+                {
+                    if (tableWidget->horizontalHeaderItem(k)->text() == it.key() && i == j)
+                    {
+                        qDebug() << "Variant #" << i << ": \n" <<
+                                 it.key() << it.value() << "\n";
+
+                        QTableWidgetItem *item = new QTableWidgetItem(QString::number(it.value()));
+                        tableWidget->setItem(j, k, item);
+                    }
+                }
+            }
+        }
+    }
 }
 
 // Bold specific row

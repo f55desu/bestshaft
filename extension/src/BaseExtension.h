@@ -29,6 +29,8 @@ public:
 public:
     typedef QMap<QString, double> Variant;
 
+   QList<Variant> variants;
+
 public:
     BaseExtension& operator=( const BaseExtension& ) {}
 protected:

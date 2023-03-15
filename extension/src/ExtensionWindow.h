@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui_ExtensionWindow.h"
+#include "BaseExtension.h"
 
 #define MaxRecentFiles 5
 
@@ -34,6 +35,7 @@ private slots:
 
 protected:
     double calculateMaxTension();
+    void updateTableRows(QList<BaseExtension::Variant> variants);
 private:
     void boldRow(int rowId, QTableWidget* tableWidget, bool bold=true);
     void initilizeVariant();
