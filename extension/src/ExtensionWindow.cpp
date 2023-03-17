@@ -20,8 +20,12 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     addButton->setToolTip("Add a copy of selected variant or add a current variant applied to model");
     paraviewButton->setToolTip("Open in ParaView selected variant(s)");
 
+    tableWidget->setSortingEnabled(true);
+    tableWidget->sortByColumn(tableWidget->columnCount()-1, Qt::DescendingOrder);
+
+    currentVariantId = 0;
     on_addButton_clicked();
-    boldRow(0, tableWidget);
+    boldRow(currentVariantId, tableWidget);
 }
 
 ExtensionWindow::~ExtensionWindow()
@@ -145,21 +149,6 @@ void ExtensionWindow::on_addButton_clicked()
                                 stdmap1.begin(), stdmap1.end(),
                                 std::back_inserter(differenceV2V1), compare);
 
-//            for (int i = 0; i < intersection.size(); i++)
-//            {
-//                qDebug() << intersection[i].first << intersection[i].second << "\n";
-//            }
-
-//            for (int i = 0; i < differenceV1V2.size(); i++)
-//            {
-//                qDebug() << differenceV1V2[i].first << differenceV1V2[i].second << "\n";
-//            }
-
-//            for (int i = 0; i < differenceV2V1.size(); i++)
-//            {
-//                qDebug() << differenceV2V1[i].first << differenceV2V1[i].second << "\n";
-//            }
-
             BaseExtension::Variant variantFinal;
 
             QStringList headers;
@@ -186,8 +175,6 @@ void ExtensionWindow::on_addButton_clicked()
                         if(tableWidget->horizontalHeaderItem(j)->text() == differenceV1V2[i].first)
                         {
                             variantFinal.insert(differenceV1V2[i].first, differenceV1V2[i].second);
-                            QTableWidgetItem *item = new QTableWidgetItem(QString::number(differenceV1V2[i].second));
-                            tableWidget->setItem(tableWidget->rowCount()-1, j, item);
                             for (int k = 0; k < tableWidget->rowCount()-1; k++)
                             {
                                 QTableWidgetItem *dash = new QTableWidgetItem("—");
@@ -234,8 +221,6 @@ void ExtensionWindow::on_addButton_clicked()
                     if (tableWidget->horizontalHeaderItem(j)->text() == intersection[i].first)
                     {
                         variantFinal.insert(intersection[i].first, intersection[i].second);
-                        QTableWidgetItem *item = new QTableWidgetItem(QString::number(intersection[i].second));
-                        tableWidget->setItem(tableWidget->rowCount()-1, i+1, item);
                     }
                 }
             }
@@ -349,7 +334,8 @@ void ExtensionWindow::on_applyButton_clicked()
 
     int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
 
-    boldRow(selectedRowId, tableWidget);
+    currentVariantId=selectedRowId;
+    boldRow(currentVariantId, tableWidget);
 
     for (int i = 1; i < tableWidget->columnCount()-1; i++)
     {
@@ -463,25 +449,26 @@ void ExtensionWindow::updateTableRows(QList<BaseExtension::Variant> variants)
 {
     for (int i = 0; i < variants.count(); i++)
     {
-        for (int j = 0; j < tableWidget->rowCount(); j++)
+        for (int row = 0; row < tableWidget->rowCount(); row++)
         {
             BaseExtension::Variant variant = variants[i];
             for (auto it = variant.begin(); it != variant.end(); it++)
             {
-                for (int k = 0; k < tableWidget->columnCount(); k++)
+                for (int col = 0; col < tableWidget->columnCount(); col++)
                 {
-                    if (tableWidget->horizontalHeaderItem(k)->text() == it.key() && i == j)
+                    if (tableWidget->horizontalHeaderItem(col)->text() == it.key() && i == row)
                     {
                         qDebug() << "Variant #" << i << ": \n" <<
                                  it.key() << it.value() << "\n";
 
                         QTableWidgetItem *item = new QTableWidgetItem(QString::number(it.value()));
-                        tableWidget->setItem(j, k, item);
+                        tableWidget->setItem(row, col, item);
                     }
                 }
             }
         }
     }
+    boldRow(currentVariantId, tableWidget);
 }
 
 // Bold specific row

@@ -49,6 +49,8 @@ protected:
 private:
     BaseExtension* m_extension;
 private:
+    int currentVariantId;
+private:
     QTranslator m_qtranslator;
 //private:
 //    QString m_langPath;
