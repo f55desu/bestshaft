@@ -32,6 +32,7 @@ private slots:
     void on_deleteButton_clicked();
 
     void onMultiplySelection();
+    void on_cellChanged( int row, int column );
 
 protected:
     double calculateMaxTension();
@@ -39,7 +40,9 @@ protected:
 private:
     void boldRow( int rowId, QTableWidget* tableWidget, bool bold = true );
     void initilizeVariant();
-    int get_col_id( const QString& name );
+    int GetColumnId( const QString& name );
+    QString GenerateVariantName();
+
 //private:
 //    void createLanguageMenu();
 protected:

@@ -51,7 +51,7 @@ void BaseExtension::InitQt()
 
     //Read options from ini file
     QSettings settings( m_iniFileName, QSettings::IniFormat );
-    QString arglist = settings.value( "QTAPP/ARGV", "-style=plastique" ).toString();
+    QString arglist = settings.value( "QTAPP/ARGV", "-style=fusion" ).toString();
 
     //Parse options to convert into command line string
     stringstream buf;

@@ -14,6 +14,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     tableWidget->setSelectionMode( QAbstractItemView::ExtendedSelection );
 
     connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
+    connect( tableWidget, &QTableWidget::cellChanged, this, &ExtensionWindow::on_cellChanged );
     calculateButton->setToolTip( "Calculate selected variant(s) Von Mises" );
     deleteButton->setToolTip( "Delete selected variant(s)" );
     applyButton->setToolTip( "Apply selected variant to the current model" );
@@ -74,6 +75,7 @@ void ExtensionWindow::showEvent( QShowEvent* e )
 
 void ExtensionWindow::closeEvent( QCloseEvent* event )
 {
+    Q_UNUSED( event );
 //    if ( mayBeSave() )
 //        event->accept();
 //    else
@@ -85,7 +87,7 @@ void ExtensionWindow::on_actionExit_triggered()
     close();
 }
 
-int ExtensionWindow::get_col_id( const QString& name )
+int ExtensionWindow::GetColumnId( const QString& name )
 {
     for ( int i = 1; i < tableWidget->columnCount() - 1; i++ )
     {
@@ -94,6 +96,52 @@ int ExtensionWindow::get_col_id( const QString& name )
     }
 
     return -1;
+}
+
+QString ExtensionWindow::GenerateVariantName()
+{
+    QString name;
+
+    int j = 1, i;
+
+    goto label_start;
+
+    while ( i < tableWidget->rowCount() )
+    {
+        if ( tableWidget->item( i, 0 ) && tableWidget->item( i, 0 )->text() == name )
+        {
+label_start:
+            name = QString( "Variant #%1" ).arg( j++ );
+            i = 0;
+            continue;
+        }
+
+        i++;
+    }
+
+    return name;
+}
+
+void ExtensionWindow::on_cellChanged( int row, int column )
+{
+    if ( column != 0 )
+        return;
+
+    QRegularExpression re( "^[^\\/:*?\"<>|]*$" );
+    QRegularExpressionMatch match;
+
+    if ( tableWidget->item( row, 0 ) && !( match = re.match( tableWidget->item( row, 0 )->text() ) ).hasMatch() )
+    {
+        tableWidget->item( row, 0 )->setText( GenerateVariantName() );
+        return;
+    }
+
+    for ( int i = 0; i < tableWidget->rowCount(); i++ )
+        if ( i != row && tableWidget->item( i, 0 )->text() == tableWidget->item( row, 0 )->text() )
+        {
+            tableWidget->item( row, 0 )->setText( GenerateVariantName() );
+            break;
+        }
 }
 
 void ExtensionWindow::on_addButton_clicked()
@@ -119,7 +167,9 @@ void ExtensionWindow::on_addButton_clicked()
                                                                                                                  i )->text().toDouble() ) );
     }
 
-    std::map<QString, double> variant_from_model( m_extension->ExtractVariant().toStdMap() );
+    BaseExtension::Variant variant = m_extension->ExtractVariant();
+
+    std::map<QString, double> variant_from_model( variant.toStdMap() );
 
     auto compare = []( auto & x, auto & y )
     {
@@ -166,21 +216,21 @@ void ExtensionWindow::on_addButton_clicked()
     int insertedRowId = tableWidget->rowCount() - 1;
 
     tableWidget->setItem( insertedRowId, 0,
-                          new QTableWidgetItem( QString( "Variant #%1" ).arg( rowCount + 1 ) ) );
+                          new QTableWidgetItem( GenerateVariantName() ) );
 
     for ( const auto& it : difference_table_model )
     {
         QTableWidgetItem* item = new QTableWidgetItem( "—" );
         item->setFlags( item->flags() & ~Qt::ItemIsEditable );
-        tableWidget->setItem( insertedRowId, get_col_id( it.first ), item );
+        tableWidget->setItem( insertedRowId, GetColumnId( it.first ), item );
     }
 
     for ( const auto& it : intersection )
-        tableWidget->setItem( insertedRowId, get_col_id( it.first ),
+        tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
                               new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
 
     for ( const auto& it : difference_model_table )
-        tableWidget->setItem( insertedRowId, get_col_id( it.first ),
+        tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
                               new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
 
     QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
@@ -188,15 +238,6 @@ void ExtensionWindow::on_addButton_clicked()
     tableWidget->setItem( insertedRowId, tableWidget->columnCount() - 1, vonmises_item );
 
     tableWidget->selectRow( rowCount );
-
-    BaseExtension::Variant variant;
-
-    for ( int i = 1; i < tableWidget->columnCount() - 1; i++ )
-    {
-        // Takeout table information and add to variant
-        variant.insert( tableWidget->horizontalHeaderItem( i )->text(), tableWidget->item( selectedRowId,
-                                                                                           i )->text().toDouble()  );
-    }
 
     m_extension->variants.append( variant );
 }
@@ -246,7 +287,7 @@ void ExtensionWindow::initilizeVariant()
 
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
-    QTableWidgetItem* id = new QTableWidgetItem( "Variant #" + QString::number( rowCount + 1 ) );
+    QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
     tableWidget->setItem( rowCount, 0, id );
 
     for ( const auto& var : variant.keys() )
