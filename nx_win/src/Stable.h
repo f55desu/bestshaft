@@ -32,6 +32,11 @@
 
 #if defined __cplusplus
 
+    #include <iostream>
+    #include <iomanip>
+    #include <ctime>
+    #include <sstream>
+
     //STL support
     #include <set>
     #include <map>
@@ -112,18 +117,20 @@
     #include <QMessageBox>
     #include <QWidget>
     #include <QDebug>
+    #include <QSettings>
+    #include <QDir>
     //    #include <QJSEngine>
 
     #include "EnableMemoryLeak.h"
 
     #include <windows.h>
 
-//    // tetgen
-//    #include <tetgen.h>
+    //    // tetgen
+    //    #include <tetgen.h>
 
-//    // CGAL lib
-//    #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
-//    #include <CGAL/Triangulation_3.h>
-//    #include <CGAL/Tetrahedral_mesh_3.h>
+    //    // CGAL lib
+    //    #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+    //    #include <CGAL/Triangulation_3.h>
+    //    #include <CGAL/Tetrahedral_mesh_3.h>
 
 #endif

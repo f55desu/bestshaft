@@ -43,12 +43,11 @@ private:
 //    QString PreprocessModel();
 protected:
     Variant ExtractVariant();
-    void ApplyVariant(BaseExtension::Variant variant);
+    void ApplyVariant( BaseExtension::Variant variant );
 
-    void CalculateMaxTension(BaseExtension::Variant variant);
-    void writeSTL(const std::vector<double>& vertices, const std::string& filename);
-//    void writeMedit(const std::vector<double>& vertices, const std::vector<int>& triangles, const std::string& filename);
-    void GetMesh();
+//    void CalculateMaxTension( BaseExtension::Variant variant );
+    int SaveSTL( BaseExtension::Variant variant );
+//    void writeSTL( const std::vector<double>& vertices, const std::string& filename );
 
 //public slots:
 //    void CheckContextIsValid();

@@ -10,11 +10,11 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     installEventFilter( this );
 
     // Selecting one row at once
-    tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows );
     // Multiply selection of rows with ctrl
-    tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    tableWidget->setSelectionMode( QAbstractItemView::ExtendedSelection );
 
-    connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
+    connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
 
     on_addButton_clicked();
 }
@@ -80,36 +80,38 @@ void ExtensionWindow::on_addButton_clicked()
 {
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
-    tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
+    tableWidget->setColumnCount( variant.count() + 2 ); // Variant columns + VarCol + VonMisesCol
 //    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows ); // Selecting one row at once
 //    tableWidget->setSelectionMode( QAbstractItemView::MultiSelection ); // Multiply selection of rows
 
     QStringList headersList;
 
-    headersList.append("Var\\Par");
-    for (const auto &var : variant.keys())
-    {
-        headersList.append(QString(var));
-    }
-    headersList.append("Von Mises");
+    headersList.append( "Var\\Par" );
+
+    for ( const auto& var : variant.keys() )
+        headersList.append( QString( var ) );
+
+    headersList.append( "Von Mises" );
 
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
-    QTableWidgetItem *id = new QTableWidgetItem(QString::number(rowCount+1));
-    tableWidget->setItem(rowCount, 0, id);
+    QTableWidgetItem* id = new QTableWidgetItem( QString::number( rowCount + 1 ) );
+    tableWidget->setItem( rowCount, 0, id );
 
     int index = 0;
-    for (const auto &var : variant.keys())
+
+    for ( const auto& var : variant.keys() )
     {
-        QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
-        tableWidget->setItem(rowCount, index+1, item);
+        QTableWidgetItem* item = new QTableWidgetItem( QString::number( variant[var] ) );
+        tableWidget->setItem( rowCount, index + 1, item );
         ++index;
     }
-    QTableWidgetItem *item = new QTableWidgetItem("—");
-    tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
+
+    QTableWidgetItem* item = new QTableWidgetItem( "—" );
+    tableWidget->setItem( rowCount, index + 1, item ); // Cтавится прочерк у Von Mises.
 }
 
 
@@ -119,13 +121,15 @@ void ExtensionWindow::on_applyButton_clicked()
     int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
 
     int columnsCount = tableWidget->columnCount();
-    for (int i = 1; i < columnsCount; i++)
+
+    for ( int i = 1; i < columnsCount; i++ )
     {
         // Takeout table information and add to variant
-        variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
+        variant.insert( tableWidget->horizontalHeaderItem( i )->text(), tableWidget->item( selectedRowId,
+                                                                                           i )->text().toDouble() );
     }
 
-    m_extension->ApplyVariant(variant);
+    m_extension->ApplyVariant( variant );
 }
 
 
@@ -133,21 +137,26 @@ void ExtensionWindow::on_calculateButton_clicked()
 {
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
-    for (int i = 0; i < selectedRows.count(); i++)
+    for ( int i = 0; i < selectedRows.count(); i++ )
     {
         double someValue = 0.0;
         someValue = calculateMaxTension();
 
         int colCount = tableWidget->columnCount();
         int selectedRow = selectedRows[i].row();
-        QTableWidgetItem *selectedItem;
-        selectedItem = new QTableWidgetItem(QString::number(someValue));
+        QTableWidgetItem* selectedItem;
+        selectedItem = new QTableWidgetItem( QString::number( someValue ) );
 
-        tableWidget->setItem(selectedRow, colCount - 1, selectedItem); // Set the Von Misses Col
+        tableWidget->setItem( selectedRow, colCount - 1, selectedItem ); // Set the Von Misses Col
     }
 
     BaseExtension::Variant variant = m_extension->ExtractVariant();
-    m_extension->CalculateMaxTension(variant);
+    int error_code = m_extension->SaveSTL( variant );
+
+    if ( error_code )   // error_code != 0
+    {
+        // error
+    }
 }
 
 
@@ -161,10 +170,10 @@ void ExtensionWindow::on_deleteButton_clicked()
 {
     QModelIndexList selection = tableWidget->selectionModel()->selectedRows();
 
-    for (int i = 0; i < selection.count(); i++)
+    for ( int i = 0; i < selection.count(); i++ )
     {
-        int row = selection.at(i).row();
-        tableWidget->removeRow(row);
+        int row = selection.at( i ).row();
+        tableWidget->removeRow( row );
     }
 }
 
@@ -176,21 +185,20 @@ void ExtensionWindow::onMultiplySelection()
 
     // Count the unique rows within the selected ranges
     QSet<int> selectedRows;
-    foreach (QTableWidgetSelectionRange range, ranges)
+
+    foreach ( QTableWidgetSelectionRange range, ranges )
     {
-        for (int row = range.topRow(); row <= range.bottomRow(); ++row)
-        {
-            selectedRows.insert(row);
-        }
+        for ( int row = range.topRow(); row <= range.bottomRow(); ++row )
+            selectedRows.insert( row );
     }
 
-    applyButton->setEnabled(selectedRows.count() == 1); // Can't apply multiply variants
+    applyButton->setEnabled( selectedRows.count() == 1 ); // Can't apply multiply variants
 }
 
 double ExtensionWindow::calculateMaxTension()
 {
-    srand(time(NULL));
-    double random_double = static_cast<double>(rand()) / RAND_MAX;
+    srand( time( NULL ) );
+    double random_double = static_cast<double>( rand() ) / RAND_MAX;
     return random_double;
 }
 

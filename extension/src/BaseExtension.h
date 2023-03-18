@@ -66,10 +66,10 @@ public:
 
 protected:
     virtual Variant ExtractVariant() = 0;
-    virtual void ApplyVariant(Variant variant) = 0;
+    virtual void ApplyVariant( Variant variant ) = 0;
 
-    virtual void CalculateMaxTension(Variant variant) = 0;
-    virtual void GetMesh() = 0;
+//    virtual void CalculateMaxTension( Variant variant ) = 0;
+    virtual int SaveSTL( Variant variant ) = 0;
 
 //protected:
 //    virtual QString Test() = 0;
