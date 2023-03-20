@@ -30,6 +30,7 @@ public:
     typedef QMap<QString, double> Variant;
 
    QList<Variant> variants;
+   //QMap<QString, Variant> model;
 
 public:
     BaseExtension& operator=( const BaseExtension& ) {}

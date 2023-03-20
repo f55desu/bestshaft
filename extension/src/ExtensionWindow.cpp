@@ -420,47 +420,25 @@ void ExtensionWindow::onMultiplySelection()
             selectedRows.insert( row );
     }
 
-    paraviewButton->setEnabled( selectedRows.count() >= 1 ); // Can't open in ParaView zero variants
-    calculateButton->setEnabled( selectedRows.count() >= 1 ); // Can't calculate zero variants
-    deleteButton->setEnabled( selectedRows.count() >= 1 ); // Can't delete zero variants
-    addButton->setEnabled( selectedRows.count() == 1 ); // Can't copy multiply variants
-    applyButton->setEnabled( selectedRows.count() == 1 ); // Can't apply multiply variants
+    // Can't open in ParaView zero variants
+    paraviewButton->setEnabled( selectedRows.count() >= 1 );
+    // Can't calculate zero variants
+    calculateButton->setEnabled( selectedRows.count() >= 1 );
+    // Can't delete zero variants and can't delete applied variant
+    deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains(currentVariantId) );
+    // Can't copy multiply variants
+    addButton->setEnabled( selectedRows.count() == 1 );
+    // Can't apply multiply variants
+    applyButton->setEnabled( selectedRows.count() == 1 );
 }
 
 double ExtensionWindow::calculateMaxTension()
 {
     srand( time( NULL ) );
     double random_double = static_cast<double>( rand() ) / RAND_MAX;
+    Sleep(1000);
     return random_double;
 }
-
-/*void ExtensionWindow::updateTableRows( QList<BaseExtension::Variant> variants )
-{
-    for ( int i = 0; i < variants.count(); i++ )
-    {
-        for ( int row = 0; row < tableWidget->rowCount(); row++ )
-        {
-            BaseExtension::Variant variant = variants[i];
-
-            for ( auto it = variant.begin(); it != variant.end(); it++ )
-            {
-                for ( int col = 0; col < tableWidget->columnCount(); col++ )
-                {
-                    if ( tableWidget->horizontalHeaderItem( col )->text() == it.key() && i == row )
-                    {
-                        qDebug() << "Variant #" << i << ": \n" <<
-                                 it.key() << it.value() << "\n";
-
-                        QTableWidgetItem* item = new QTableWidgetItem( QString::number( it.value() ) );
-                        tableWidget->setItem( row, col, item );
-                    }
-                }
-            }
-        }
-    }
-
-    boldRow( currentVariantId, tableWidget );
-}*/
 
 // Bold specific row
 void ExtensionWindow::boldRow( int rowId, QTableWidget* tableWidget, bool bold )

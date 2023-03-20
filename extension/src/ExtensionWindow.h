@@ -36,7 +36,6 @@ private slots:
 
 protected:
     double calculateMaxTension();
-    //void updateTableRows( QList<BaseExtension::Variant> variants );
 private:
     void boldRow( int rowId, QTableWidget* tableWidget, bool bold = true );
     void initilizeVariant();
