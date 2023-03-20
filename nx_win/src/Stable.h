@@ -119,6 +119,7 @@
     #include <QDebug>
     #include <QSettings>
     #include <QDir>
+    #include <QProcess>
     //    #include <QJSEngine>
 
     #include "EnableMemoryLeak.h"

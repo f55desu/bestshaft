@@ -1,5 +1,6 @@
 #include "Stable.h"
 #include "NXExtensionImpl.h"
+#include "../../utils/Point.h"
 
 NXExtensionImpl NXExtensionImpl::m_instance;
 HHOOK NXExtensionImpl::m_hHook = 0x0;
@@ -188,17 +189,23 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
 
     faceting_parameters.max_facet_edges = 3; // сетка из треугольников
 
-    faceting_parameters.specify_surface_tolerance = true;
-    faceting_parameters.surface_dist_tolerance = 3.0;
-    faceting_parameters.surface_angular_tolerance = 0.0;
+//    faceting_parameters.specify_surface_tolerance = true;
+//    faceting_parameters.surface_dist_tolerance = 3.0;
+//    faceting_parameters.surface_angular_tolerance = 0.0;
 
-    faceting_parameters.specify_curve_tolerance = true;
-    faceting_parameters.curve_dist_tolerance = 3.0;
-    faceting_parameters.curve_angular_tolerance =  0.0;
-    faceting_parameters.curve_max_length = DBL_MAX;
+//    faceting_parameters.specify_curve_tolerance = true;
+//    faceting_parameters.curve_dist_tolerance = 3.0;
+//    faceting_parameters.curve_angular_tolerance =  0.0;
+//    faceting_parameters.curve_max_length = DBL_MAX;
+
+    double box[6];
+    UF_CALL( ::UF_MODL_ask_bounding_box( tag_solid_body, box ) );
+
+    Point3D corner_point[2] = {&box[0], &box[3]};
 
     faceting_parameters.specify_max_facet_size = true;
-    faceting_parameters.max_facet_size = 3.0;
+    faceting_parameters.max_facet_size = corner_point[0].DistanceTo( corner_point[1] ) *
+                                         0.03/*parameter to be configurable*/;
 
     // UF_FACET_facet_solid
     tag_t tag_faceted_model = NULL_TAG;
@@ -250,7 +257,7 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
     const QString DefaultName = "model.tri.mesh.stl";
     QSettings qs;
 //    QString path = qs.applicationName() + QDir::separator() + DefaultName;
-    QString path = "C:\\Users\\Joel\\Desktop\\" + DefaultName;
+    QString path = "Z:\\" + DefaultName;
 
     // save stl
     std::ofstream file;
@@ -265,6 +272,16 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
 
     file << out.str();
     file.close();
+
+    QProcess tetgen;
+    tetgen.start( "C:/Projects/bestshaft/debug/bin/startup/tetgen.exe",
+                  QStringList() << QString( "-ka%1" ).arg( faceting_parameters.max_facet_size ) << path );
+
+    if ( !tetgen.waitForStarted() )
+        return 1;
+
+    if ( !tetgen.waitForFinished() )
+        return 2;
 
     return 0;
 }
