@@ -385,24 +385,48 @@ void ExtensionWindow::on_deleteButton_clicked()
     QVector<int> rowsToDelete;
     int row = 0;
 
+    QString message;
+
     // Fill the vector with unique rows
     for ( QTableWidgetItem* item : selectedItems )
     {
         row = item->row();
 
         if ( !rowsToDelete.contains( row ) )
+        {
             rowsToDelete.append( row );
+        }
+
     }
+    if (!rowsToDelete.empty() && rowsToDelete.size() == 1)
+        message.append(QString("You are about to delete %1").arg(tableWidget->item(rowsToDelete.first(), 0)->text()));
+    else
+        message.append(QString("You are about to delete %1 items").arg(rowsToDelete.size()));
 
-    // Sort the rows Id's
-    std::sort( rowsToDelete.begin(), rowsToDelete.end(), std::greater<int>() );
+    message.append("\nDo you want to proceed?");
 
-    // Delete them
-    for ( int row : rowsToDelete )
-        tableWidget->removeRow( row );
+    QMessageBox msgBox;
+    msgBox.setText(message);
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle(QString("BestShaft"));
+    msgBox.setParent(this); // Set parent to current widget
+    msgBox.setWindowModality(Qt::WindowModal);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    int ret = msgBox.exec();
+    if (ret == QMessageBox::Yes)
+    {
+        // Sort the rows Id's
+        std::sort( rowsToDelete.begin(), rowsToDelete.end(), std::greater<int>() );
 
-    if ( tableWidget->rowCount() < 1 )
-        addButton->setEnabled( true );
+        // Delete them
+        for ( int row : rowsToDelete )
+            tableWidget->removeRow( row );
+
+        if ( tableWidget->rowCount() < 1 )
+            addButton->setEnabled( true );
+    }
+    else if (ret == QMessageBox::No)
+        return;
 }
 
 // Buttons to be disabled if action cannot be performed

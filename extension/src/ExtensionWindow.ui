@@ -14,7 +14,7 @@
    <enum>Qt::StrongFocus</enum>
   </property>
   <property name="windowTitle">
-   <string/>
+   <string>BestShaft</string>
   </property>
   <property name="iconSize" stdset="0">
    <size>
