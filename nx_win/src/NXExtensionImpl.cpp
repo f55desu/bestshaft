@@ -152,18 +152,6 @@ void NXExtensionImpl::ApplyVariant( BaseExtension::Variant variant )
 
 int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
 {
-    // meshModel.SaveSTL(QSettings.GetWorkSpace + QDir::separator() + variant.id + QDir::separator() + TriMesh::DefaultName);
-
-//    struct Vertex
-//    {
-//        double x, y, z;
-//    };
-
-//    struct Triangle
-//    {
-//        Vertex v1, v2, v3;
-//    };
-
     // UF_PART_ask_diplay_part
     tag_t tag_display_part = NULL_TAG;
     tag_display_part = ::UF_PART_ask_display_part();
@@ -173,8 +161,6 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
         // tag_display_part is NULL
         return 1;
     }
-
-    qDebug() << "tag_display_part: " << tag_display_part;
 
     // UF_OBJ_cycle_objs_in_part
     tag_t tag_solid_body = NULL_TAG;
@@ -254,74 +240,82 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
     out << "endsolid my_solid\n";
 
     // parameters
-    const QString DefaultName = "model.tri.mesh.stl";
-    QSettings qs;
-//    QString path = qs.applicationName() + QDir::separator() + DefaultName;
-    QString path = "Z:\\" + DefaultName;
+    QString homePath = QDir::homePath();
+    QDir homeDir( homePath );
+
+    QString bestshaftWorkspaceFolder = "BestshaftWorkspace";
+
+    // folder not exists
+    if ( !homeDir.exists( bestshaftWorkspaceFolder ) )
+    {
+        if ( !homeDir.mkdir( bestshaftWorkspaceFolder ) )
+        {
+            // failed to create folder
+            return 2;
+        }
+
+        // folder created successfuly
+    }
+
+    // folder exists
+    // calculate sha1 hash from model variant parameters
+    QString variantParameters = "";
+    QMapIterator<QString, double> it( variant );
+
+    while ( it.hasNext() )
+    {
+        it.next();
+        variantParameters += it.key() + QString::number( it.value() );
+    }
+
+    QByteArray hashBytes = QCryptographicHash::hash( variantParameters.toUtf8(), QCryptographicHash::Sha1 );
+    QString hash = QString( hashBytes.toHex() );
+
+    QString bestshaftWorkspacePath = homePath + QDir::separator() + bestshaftWorkspaceFolder;
+    QDir bestshaftWorkspaceDir( bestshaftWorkspacePath );
+
+    // folder not exists
+    if ( !bestshaftWorkspaceDir.exists( hash ) )
+    {
+        if ( !bestshaftWorkspaceDir.mkdir( hash ) )
+        {
+            // failed to create folder
+            return 3;
+        }
+
+        // folder created successfuly
+    }
+
+    // folder exists
+    QString defaultName = "model.tri.mesh.stl";
+    QString filePath = bestshaftWorkspacePath + QDir::separator() + hash + QDir::separator() + defaultName;
 
     // save stl
     std::ofstream file;
-    file.open( path.toStdString(), std::ios::out );
+    file.open( filePath.toStdString(), std::ios::out );
 
     if ( !file.good() )
     {
         // problems with file
         file.close();
-        return 2;
+        return 4;
     }
 
     file << out.str();
     file.close();
 
+    QString bestshaftHomePath = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
+    QString tetgenPath = bestshaftHomePath + QDir::separator() + "tetgen.exe";
+
     QProcess tetgen;
-    tetgen.start( "C:/Projects/bestshaft/debug/bin/startup/tetgen.exe",
-                  QStringList() << QString( "-ka%1" ).arg( faceting_parameters.max_facet_size ) << path );
+    tetgen.start( tetgenPath,
+                  QStringList() << QString( "-ka%1" ).arg( faceting_parameters.max_facet_size ) << filePath );
 
     if ( !tetgen.waitForStarted() )
-        return 1;
+        return 5;
 
     if ( !tetgen.waitForFinished() )
-        return 2;
+        return 6;
 
     return 0;
 }
-
-//void NXExtensionImpl::writeSTL( const std::vector<double>& vertices, const std::string& filename )
-//{
-//    std::ofstream file;
-//    file.open( filename.c_str() );
-
-//    file << "solid myobject\n";
-
-//    const int numTriangles = vertices.size() / 9;
-
-//    for ( int i = 0; i < numTriangles; ++i )
-//    {
-//        const int j = i * 9;
-
-//        const double nx = ( vertices[j + 1] - vertices[j] ) * ( vertices[j + 5] - vertices[j + 2] ) -
-//                          ( vertices[j + 2] - vertices[j] ) * ( vertices[j + 4] - vertices[j + 1] );
-//        const double ny = ( vertices[j + 2] - vertices[j] ) * ( vertices[j + 3] - vertices[j + 1] ) -
-//                          ( vertices[j + 3] - vertices[j] ) * ( vertices[j + 2] - vertices[j + 1] );
-//        const double nz = ( vertices[j + 3] - vertices[j] ) * ( vertices[j + 7] - vertices[j + 4] ) -
-//                          ( vertices[j + 4] - vertices[j] ) * ( vertices[j + 6] - vertices[j + 3] );
-
-//        const double len = std::sqrt( nx * nx + ny * ny + nz * nz );
-
-//        const double nnx = nx / len;
-//        const double nny = ny / len;
-//        const double nnz = nz / len;
-
-//        file << "facet normal " << nnx << " " << nny << " " << nnz << "\n";
-//        file << "  outer loop\n";
-//        file << "    vertex " << vertices[j] << " " << vertices[j + 1] << " " << vertices[j + 2] << "\n";
-//        file << "    vertex " << vertices[j + 3] << " " << vertices[j + 4] << " " << vertices[j + 5] << "\n";
-//        file << "    vertex " << vertices[j + 6] << " " << vertices[j + 7] << " " << vertices[j + 8] << "\n";
-//        file << "  endloop\n";
-//        file << "endfacet\n";
-//    }
-
-//    file << "endsolid myobject\n";
-
-//    file.close();
-//}

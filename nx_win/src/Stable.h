@@ -116,10 +116,14 @@
     #include <QApplication>
     #include <QMessageBox>
     #include <QWidget>
-    #include <QDebug>
+    //    #include <QDebug>
     #include <QSettings>
     #include <QDir>
     #include <QProcess>
+    #include <QProcessEnvironment>
+    //    #include <QStandardPaths>
+    #include <QCryptographicHash>
+
     //    #include <QJSEngine>
 
     #include "EnableMemoryLeak.h"

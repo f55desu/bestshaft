@@ -19,10 +19,6 @@ lessThan(QT_MAJOR_VERSION, 6) {
     config_content += "NXINCLUDE = C:/Program Files/Siemens/NX2007/UGOPEN"
     win32:config_content += "MSYS64 = set you MSYS path here"
 
-#    win32:config_content += "TETGEN_INCLUDE = set you external third part include path here"
-#    win32:config_content += "TETGEN_LIB_DEBUG = set you external third part library path here"
-#    win32:config_content += "TETGEN_LIB_RELEASE = set you external third part library path here"
-
     write_file(config.pri, config_content)
     error("Setup variables in config.pri and run qmake again")
 }
@@ -45,9 +41,6 @@ message( SEINCLUDE = $${SEINCLUDE} )
 message( SETYPELIBS = $${SETYPELIBS} )
 message( NXINCLUDE = $${NXINCLUDE} )
 message( MSYS64 = $${MSYS64} )
-#message( TETGEN_INCLUDE = $${TETGEN_INCLUDE} )
-#message( TETGEN_LIB_DEBUG = $${TETGEN_LIB_DEBUG} )
-#message( TETGEN_LIB_RELEASE = $${TETGEN_LIB_RELEASE} )
 
 win32:!system($${MSYS64}sh -c echo >nul 2>&1):error("Unable to launch \"$${MSYS64}sh -c echo\" for test purpose. Probably MSYS64 variable is not correctly set. Check config.pri file.")
 
@@ -99,7 +92,6 @@ INCLUDEPATH += $$MEMEORY_LEAK_DETECTOR_INCLUDE \
                $$CVS_PARSER_INCLUDE \
                $$LOG4CPP_INCLUDE \
                $$BOOST_INCLUDE
-#               $$TETGEN_INCLUDE
 
 CONFIG(debug, debug|release) {
     DEFINES += DEBUG _DEBUG
@@ -108,7 +100,6 @@ CONFIG(debug, debug|release) {
             -L$$LOG4CPP_LIB_DEBUG \
             -L$$BOOST_LIB_DEBUG \
             -L$$CVS_PARSER_LIB_DEBUG
-#            -L$$TETGEN_LIB_DEBUG
 
     win32-msvc* {
         QMAKE_CXXFLAGS += /RTC1 /sdl /fp:except
@@ -126,7 +117,6 @@ CONFIG(release, debug|release) {
     LIBS += -L$$LOG4CPP_LIB_RELEASE \
             -L$$BOOST_LIB_RELEASE \
             -L$$CVS_PARSER_LIB_RELEASE
-#            -L$$TETGEN_LIB_RELEASE
 
     win32-msvc* {
     }
