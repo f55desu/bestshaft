@@ -4,6 +4,24 @@ Dialog::Dialog(QWidget *parent)
     : QDialog(parent)
 {
     setupUi(this);
+
+//    std::generate(m_model.begin(), m_model.end(),
+//                  [n = 1] () mutable { n++; return std::pair(std::format("Variant #{}",n),static_cast<double>(n));} );
+
+    m_tableModel = new DataModel(this);
+    tableView->setModel(m_tableModel);
+
+//    m_tableModel->AddVariant(DataModel::Params{std::pair("Par1",0.111),std::pair("VonMises",.0)});
+//    m_tableModel->AddVariant(DataModel::Params{std::pair("Par1",0.111),std::pair("Par2",0.222),std::pair("VonMises",.0)});
+//    m_tableModel->AddVariant(DataModel::Params{std::pair("Par2",0.222),std::pair("VonMises",.0)});
+//    m_tableModel->AddVariant(DataModel::Params{std::pair("VonMises",.0)});
+
+    //tableView->setShowGrid(false);
+//    tableView->horizontalHeader()->show();
+//    tableView->verticalHeader()->show();
+//    tableView->horizontalHeader()->setMinimumSectionSize(1);
+//    tableView->verticalHeader()->setMinimumSectionSize(1);
+
     on_pushButton_clicked();
 }
 
@@ -20,6 +38,7 @@ int Dialog::get_col_id(const QString& name)
     }
     return -1;
 }
+
 void Dialog::on_pushButton_clicked()
 {
     /*QObject obj;
@@ -74,5 +93,12 @@ void Dialog::on_pushButton_clicked()
     QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
     vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable );
     tableWidget->setItem( insertedRowId, tableWidget->columnCount() - 1, vonmises_item );
+}
+
+
+void Dialog::on_pushButton_2_clicked()
+{
+    DataModel::Params params{std::pair("Par3",0.3),std::pair("Par4",0.4),std::pair("Par2",0.222),std::pair("VonMises",.0)};
+    m_tableModel->AddVariant(params);
 }
 
