@@ -98,7 +98,6 @@ void Dialog::on_pushButton_clicked()
     tableWidget->setItem( insertedRowId, tableWidget->columnCount() - 1, vonmises_item );
 }
 
-<<<<<<< HEAD
 void Dialog::startTetgen( int selectedItemId )
 {
     m_currentProcess = new QProcess(this);
@@ -168,12 +167,11 @@ void Dialog::on_solveButton_clicked()
     QApplication::processEvents();
 
     emit startTetgen( 0 );
-=======
+}
 
 void Dialog::on_pushButton_2_clicked()
 {
     DataModel::Params params{std::pair("Par3",0.3),std::pair("Par4",0.4),std::pair("Par2",0.222),std::pair("VonMises",.0)};
     m_tableModel->AddVariant(params);
->>>>>>> c2a8b55771909f436c0902f27c185c83d93c95ca
 }
 

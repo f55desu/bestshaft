@@ -111,17 +111,18 @@
     </widget>
    </item>
    <item>
-<<<<<<< HEAD
     <widget class="QPushButton" name="solveButton">
      <property name="text">
       <string>Solve</string>
-=======
-    <widget class="QPushButton" name="pushButton_2">
-     <property name="text">
-      <string>Load</string>
->>>>>>> c2a8b55771909f436c0902f27c185c83d93c95ca
      </property>
     </widget>
+   </item>
+   <item>
+       <widget class="QPushButton" name="pushButton_2">
+        <property name="text">
+         <string>Load</string>
+        </property>
+       </widget>
    </item>
   </layout>
  </widget>
