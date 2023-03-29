@@ -1,5 +1,8 @@
 #include "Dialog.h"
 
+#include <QDebug>
+#include <QThread>
+
 Dialog::Dialog(QWidget *parent)
     : QDialog(parent)
 {
@@ -74,5 +77,76 @@ void Dialog::on_pushButton_clicked()
     QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
     vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable );
     tableWidget->setItem( insertedRowId, tableWidget->columnCount() - 1, vonmises_item );
+}
+
+void Dialog::startTetgen( int selectedItemId )
+{
+    m_currentProcess = new QProcess(this);
+    connect( m_currentProcess, &QProcess::finished, this, &Dialog::solveEnd );
+    connect(m_currentProcess, &QProcess::errorOccurred, [=](QProcess::ProcessError error)
+    {
+        qDebug() << "error enum val = " << error;
+    });
+    m_currentProcess->setProcessChannelMode(QProcess::MergedChannels);
+
+    m_currentProcess->start("notepad.exe");
+
+//    QThread::msleep(1000);
+//    qDebug() << m_currentProcess->state();
+//    qDebug() << m_currentProcess->error();
+
+    if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
+        emit on_solve_stop( m_currentProcess->error());
+}
+
+void Dialog::solveEnd( int exitCode, QProcess::ExitStatus exitStatus)
+{
+    srand( time( NULL ) );
+    double someValue = static_cast<double>( rand() ) / RAND_MAX;
+
+    tableWidget->item(0, 0)->setText(QString::number(someValue));
+    emit on_solve_stop( exitCode/*no error*/ );
+    disconnect( solveButton, SIGNAL(&QPushButton::clicked), this, SLOT(&Dialog::on_cancelButton_clicked) );
+    connect( solveButton, SIGNAL(&QPushButton::clicked), this, SLOT(&Dialog::on_solveButton_clicked) );
+    solveButton->setText( "&Solve" );
+    QApplication::restoreOverrideCursor();
+}
+
+void Dialog::on_solve_stop( int error, ... )
+{
+    if (error)
+        qDebug() << QString("Tetgen return %1 error code").arg(error);
+    // activate interface
+}
+
+void Dialog::on_cancelButton_clicked()
+{
+    if (m_currentProcess->state() == QProcess::Running)
+        m_currentProcess->terminate();
+    QPushButton *button = (QPushButton*)sender();
+    button->setText( "&Solve" );
+    button->disconnect();
+    connect( button, &QPushButton::clicked, this, &Dialog::on_solveButton_clicked);
+    QApplication::restoreOverrideCursor();
+}
+
+void Dialog::on_solveButton_clicked()
+{
+    QApplication::setOverrideCursor( Qt::BusyCursor );
+    //deactivate all interface
+    m_tmpName = solveButton->text();
+    QPushButton *button = (QPushButton*)sender();
+    button->setText( "&Cancel" );
+    button->disconnect();
+    connect( button, &QPushButton::clicked, this, &Dialog::on_cancelButton_clicked);
+
+    //disconnect(solveButton, SIGNAL(&QPushButton::clicked), nullptr, nullptr);
+
+    //disconnect( solveButton, &QPushButton::clicked, this, &Dialog::on_solveButton_clicked );
+    //connect( solveButton, &QPushButton::clicked, this, &Dialog::on_cancelButton_clicked);
+
+    QApplication::processEvents();
+
+    emit startTetgen( 0 );
 }
 

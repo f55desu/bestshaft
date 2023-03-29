@@ -2,6 +2,7 @@
 
 #include "ui_Dialog.h"
 
+#include <QProcess>
 #include <QDialog>
 
 class Dialog : public QDialog, private Ui::Dialog
@@ -9,9 +10,18 @@ class Dialog : public QDialog, private Ui::Dialog
     Q_OBJECT
 
 public:
+    friend class QObject;
     Dialog(QWidget *parent = nullptr);
     ~Dialog();
     int get_col_id(const QString& name);
 private slots:
     void on_pushButton_clicked();
+    void on_solveButton_clicked();
+    void on_cancelButton_clicked();
+    void solveEnd(int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit);
+private:
+    QProcess* m_currentProcess;
+    QString m_tmpName;
+    void on_solve_stop(int error...);
+    void startTetgen(int selectedItemId);
 };

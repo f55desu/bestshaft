@@ -48,7 +48,7 @@
      </column>
      <item row="0" column="0">
       <property name="text">
-       <string>0</string>
+       <string>sss</string>
       </property>
      </item>
      <item row="0" column="1">
@@ -97,6 +97,13 @@
     <widget class="QPushButton" name="pushButton">
      <property name="text">
       <string>PushButton</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="solveButton">
+     <property name="text">
+      <string>Solve</string>
      </property>
     </widget>
    </item>
