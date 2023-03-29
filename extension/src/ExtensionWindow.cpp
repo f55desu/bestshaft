@@ -305,7 +305,8 @@ void ExtensionWindow::initilizeVariant()
 
     QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
     vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
-    tableWidget->setItem( rowCount, tableWidget->columnCount() - 1, vonmises_item ); // Cтавится прочерк у Von Mises.
+    tableWidget->setItem( rowCount, tableWidget->columnCount() - 1,
+                          vonmises_item ); // Cтавится прочерк у Von Mises.
 
     QApplication::restoreOverrideCursor();
 }
@@ -344,20 +345,36 @@ void ExtensionWindow::on_applyButton_clicked()
 void ExtensionWindow::startTetgen( int selectedItemId )
 {
     // BaseExtension::Variant variant = m_model[tableWidget->item( i, 0 )->text()];
-
     // SaveSTL( tableWidget->item( selectedItemId, 0 )->text() );
+
+    double returned_max_facet_size = -1;
+    QString returned_file_path = "";
+
+    int error_code = m_extension->SaveSTL( tableWidget->item( selectedItemId, 0 )->text(), returned_file_path,
+                                           returned_max_facet_size );
+
+    if ( error_code || returned_max_facet_size < 0 || returned_file_path == "" )
+    {
+        // SaveSTL something error
+        emit on_solve_stop( ERROR_TYPE_SAVESTL, error_code );
+        return;
+    }
+
+    QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
+    QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
 
     m_currentProcess = new QProcess();
     connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-    connect(m_currentProcess, &QProcess::errorOccurred, [=](QProcess::ProcessError error)
+    connect( m_currentProcess, &QProcess::errorOccurred, [ = ]( QProcess::ProcessError error )
     {
         // TODO: Make it in logs
         qDebug() << "error enum val = " << error;
-    });
-    m_currentProcess->setProcessChannelMode(QProcess::MergedChannels);
+    } );
+    m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
     // cmd.exe process did not terminate itself after executing
     //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
-    m_currentProcess->start("notepad.exe");
+    m_currentProcess->start( tetgen_path,
+                             QStringList() << QString( "-ka%1" ).arg( returned_max_facet_size ) << returned_file_path );
 
     // TODO: Bind with tetgen and calculix processes
 //    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::startCalculix );
@@ -367,10 +384,10 @@ void ExtensionWindow::startTetgen( int selectedItemId )
 //                                     + QDir::separator() + "mesh.stl" );
 
     if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
-        emit on_solve_stop( m_currentProcess->error());
+        emit on_solve_stop( ERROR_TYPE_TETGEN, m_currentProcess->error() );
 }
 
-void ExtensionWindow::startCalculix( int exitCode, QProcess::ExitStatus exitStatus)
+void ExtensionWindow::startCalculix( int exitCode, QProcess::ExitStatus exitStatus )
 {
     // TODO: Bind with tetgen and calculix processes
 //    if (exitCode)
@@ -387,18 +404,34 @@ void ExtensionWindow::startCalculix( int exitCode, QProcess::ExitStatus exitStat
 //        emit on_solve_stop( m_currentProcess->error(), ... );
 }
 
-void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus exitStatus)
+void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus exitStatus )
 {
     double someValue = calculateMaxTension();
 
-    tableWidget->item(currentVariantId, tableWidget->columnCount()-1)->setText(QString::number(someValue));
-    emit on_solve_stop( exitCode/*no error*/ );
+    tableWidget->item( currentVariantId, tableWidget->columnCount() - 1 )->setText( QString::number( someValue ) );
+    emit on_solve_stop( 0, exitCode/*no error*/ );
 }
 
-void ExtensionWindow::on_solve_stop( int error, ... )
+void ExtensionWindow::on_solve_stop( int type, int error, ... )
 {
-    if (error)
-        qDebug() << QString("Tetgen return %1 error code").arg(error);
+    if ( error )
+    {
+        switch ( type )
+        {
+            case ERROR_TYPE_TETGEN:
+                qDebug() << QString( "Tetgen return %1 error code" ).arg( error );
+                break;
+
+            case ERROR_TYPE_SAVESTL:
+                qDebug() << QString( "SaveSTL method return %1 error code" ).arg( error );
+                break;
+
+            default:
+                qDebug() << QString( "Undefined error type: %1" ).arg( error );
+                break;
+        }
+    }
+
     //BaseExtension::m_logger.error(QString("Tetgen return %1 error code").arg(error));
     //
     //messagebox tetgen->error()
@@ -414,46 +447,47 @@ void ExtensionWindow::on_solve_stop( int error, ... )
     calculateButton->setText( m_tmpName );
     QApplication::restoreOverrideCursor();
     // activate interface
-    paraviewButton->setEnabled(true);
-    deleteButton->setEnabled(true);
-    addButton->setEnabled(true);
-    applyButton->setEnabled(true);
-    tableWidget->setEnabled(true);
+    paraviewButton->setEnabled( true );
+    deleteButton->setEnabled( true );
+    addButton->setEnabled( true );
+    applyButton->setEnabled( true );
+    tableWidget->setEnabled( true );
 }
 
 void ExtensionWindow::on_cancelButton_clicked()
 {
-    if (m_currentProcess->state() == QProcess::Running)
-        m_currentProcess->terminate();
-    QPushButton *button = (QPushButton*)sender();
+    if ( m_currentProcess->state() == QProcess::Running )
+        m_currentProcess->kill();
+
+    QPushButton* button = ( QPushButton* )sender();
     button->setText( m_tmpName );
     button->disconnect();
-    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked);
+    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked );
     QApplication::restoreOverrideCursor();
     // activate interface
-    paraviewButton->setEnabled(true);
-    deleteButton->setEnabled(true);
-    addButton->setEnabled(true);
-    applyButton->setEnabled(true);
-    tableWidget->setEnabled(true);
+    paraviewButton->setEnabled( true );
+    deleteButton->setEnabled( true );
+    addButton->setEnabled( true );
+    applyButton->setEnabled( true );
+    tableWidget->setEnabled( true );
 }
 
 void ExtensionWindow::on_calculateButton_clicked()
 {
     QApplication::setOverrideCursor( Qt::BusyCursor );
     //deactivate all interface
-    QPushButton *button = (QPushButton*)sender();
+    QPushButton* button = ( QPushButton* )sender();
     m_tmpName = button->text();
-    button->setText( tr("&Cancel") );
+    button->setText( tr( "&Cancel" ) );
     button->disconnect();
-    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked);
+    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked );
 
     //Deactivate all except cancel
-    paraviewButton->setEnabled(false);
-    deleteButton->setEnabled(false);
-    addButton->setEnabled(false);
-    applyButton->setEnabled(false);
-    tableWidget->setEnabled(false);
+    paraviewButton->setEnabled( false );
+    deleteButton->setEnabled( false );
+    addButton->setEnabled( false );
+    applyButton->setEnabled( false );
+    tableWidget->setEnabled( false );
 
     QApplication::processEvents();
 
@@ -495,27 +529,27 @@ void ExtensionWindow::on_deleteButton_clicked()
         row = item->row();
 
         if ( !rowsToDelete.contains( row ) )
-        {
             rowsToDelete.append( row );
-        }
 
     }
-    if (!rowsToDelete.empty() && rowsToDelete.size() == 1)
-        message.append(QString("You are about to delete %1").arg(tableWidget->item(rowsToDelete.first(), 0)->text()));
-    else
-        message.append(QString("You are about to delete %1 items").arg(rowsToDelete.size()));
 
-    message.append("\nDo you want to proceed?");
+    if ( !rowsToDelete.empty() && rowsToDelete.size() == 1 )
+        message.append( QString( "You are about to delete %1" ).arg( tableWidget->item( rowsToDelete.first(), 0 )->text() ) );
+    else
+        message.append( QString( "You are about to delete %1 items" ).arg( rowsToDelete.size() ) );
+
+    message.append( "\nDo you want to proceed?" );
 
     QMessageBox msgBox;
-    msgBox.setText(message);
-    msgBox.setIcon(QMessageBox::Question);
-    msgBox.setWindowTitle(QString("BestShaft"));
-    msgBox.setParent(this); // Set parent to current widget
-    msgBox.setWindowModality(Qt::WindowModal);
-    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setText( message );
+    msgBox.setIcon( QMessageBox::Question );
+    msgBox.setWindowTitle( QString( "BestShaft" ) );
+    msgBox.setParent( this ); // Set parent to current widget
+    msgBox.setWindowModality( Qt::WindowModal );
+    msgBox.setStandardButtons( QMessageBox::Yes | QMessageBox::No );
     int ret = msgBox.exec();
-    if (ret == QMessageBox::Yes)
+
+    if ( ret == QMessageBox::Yes )
     {
         // Sort the rows Id's
         std::sort( rowsToDelete.begin(), rowsToDelete.end(), std::greater<int>() );
@@ -527,7 +561,7 @@ void ExtensionWindow::on_deleteButton_clicked()
         if ( tableWidget->rowCount() < 1 )
             addButton->setEnabled( true );
     }
-    else if (ret == QMessageBox::No)
+    else if ( ret == QMessageBox::No )
         return;
 }
 
@@ -551,11 +585,11 @@ void ExtensionWindow::onMultiplySelection()
     // Can't calculate zero variants
     calculateButton->setEnabled( selectedRows.count() >= 1 );
     // Can't delete zero variants and can't delete applied variant
-    deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains(currentVariantId) );
+    deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains( currentVariantId ) );
     // Can't copy multiply variants
     addButton->setEnabled( selectedRows.count() == 1 );
     // Can't apply multiply variants
-    applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains(currentVariantId) );
+    applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) );
 }
 
 double ExtensionWindow::calculateMaxTension()

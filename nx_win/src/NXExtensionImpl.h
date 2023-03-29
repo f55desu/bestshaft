@@ -46,7 +46,7 @@ protected:
     void ApplyVariant( BaseExtension::Variant variant );
 
 //    void CalculateMaxTension( BaseExtension::Variant variant );
-    int SaveSTL( BaseExtension::Variant variant );
+    int SaveSTL( const QString& variant_name, QString& returned_file_path, double& returned_max_facet_size );
 //    void writeSTL( const std::vector<double>& vertices, const std::string& filename );
 
 //public slots:

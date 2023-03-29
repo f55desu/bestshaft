@@ -132,7 +132,7 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
 
 void NXExtensionImpl::ApplyVariant( BaseExtension::Variant variant )
 {
-    for (auto &var : variant.keys())
+    for ( auto& var : variant.keys() )
     {
         // Set new value for expression by providing an entire expression like 'exp=value'
         QString exp = QString( var + "=" + QString::number( ( variant[var] ) ) );
@@ -145,7 +145,8 @@ void NXExtensionImpl::ApplyVariant( BaseExtension::Variant variant )
     UF_CALL( ::UF_MODL_update() );
 }
 
-int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
+int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_file_path,
+                              double& returned_max_facet_size )
 {
     // UF_PART_ask_diplay_part
     tag_t tag_display_part = NULL_TAG;
@@ -188,6 +189,7 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
     faceting_parameters.max_facet_size = corner_point[0].DistanceTo( corner_point[1] ) *
                                          0.03/*parameter to be configurable*/;
 
+
     // UF_FACET_facet_solid
     tag_t tag_faceted_model = NULL_TAG;
     UF_CALL( ::UF_FACET_facet_solid( tag_solid_body,
@@ -202,18 +204,14 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
     int facet_id = UF_FACET_NULL_FACET_ID;
     UF_CALL( ::UF_FACET_cycle_facets( tag_faceted_model, &facet_id ) );
 
+    // каждый фасет (полигон) всегда состоит из 3-х вершин
+    // двумерный массив под вершины фасетной модели
+    double ( * facet_vertices )[3];
+    int facet_vertices_size = 9 * sizeof( double );
+    facet_vertices = ( double( * )[3] )malloc( facet_vertices_size );
+
     while ( facet_id != UF_FACET_NULL_FACET_ID )
     {
-        int num_vertices_in_facet = 0;
-        UF_CALL( ::UF_FACET_ask_num_verts_in_facet( tag_faceted_model,
-                                                    facet_id,
-                                                    &num_vertices_in_facet ) );
-
-        // двумерный массив под вершины фасетной модели
-        double ( * facet_vertices )[3];
-        int facet_vertices_size = 3 * num_vertices_in_facet * sizeof( double );
-        facet_vertices = ( double( * )[3] )malloc( facet_vertices_size );
-
         int verts_in_facet = 0;
         UF_CALL( ::UF_FACET_ask_vertices_of_facet( tag_faceted_model,
                                                    facet_id,
@@ -223,7 +221,7 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
         out << "  facet normal 0 0 0\n";
         out << "    outer loop\n";
 
-        for ( int i = 0; i < num_vertices_in_facet; i++ )
+        for ( int i = 0; i < verts_in_facet; i++ )
             out << "      vertex " << facet_vertices[i][0] << " " << facet_vertices[i][1] << " " << facet_vertices[i][2] << "\n";
 
         out << "    endloop\n";
@@ -253,26 +251,13 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
     }
 
     // folder exists
-    // calculate sha1 hash from model variant parameters
-    QString variantParameters = "";
-    QMapIterator<QString, double> it( variant );
-
-    while ( it.hasNext() )
-    {
-        it.next();
-        variantParameters += it.key() + QString::number( it.value() );
-    }
-
-    QByteArray hashBytes = QCryptographicHash::hash( variantParameters.toUtf8(), QCryptographicHash::Sha1 );
-    QString hash = QString( hashBytes.toHex() );
-
     QString bestshaftWorkspacePath = homePath + QDir::separator() + bestshaftWorkspaceFolder;
     QDir bestshaftWorkspaceDir( bestshaftWorkspacePath );
 
     // folder not exists
-    if ( !bestshaftWorkspaceDir.exists( hash ) )
+    if ( !bestshaftWorkspaceDir.exists( variant_name ) )
     {
-        if ( !bestshaftWorkspaceDir.mkdir( hash ) )
+        if ( !bestshaftWorkspaceDir.mkdir( variant_name ) )
         {
             // failed to create folder
             return 3;
@@ -283,7 +268,7 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
 
     // folder exists
     QString defaultName = "model.tri.mesh.stl";
-    QString filePath = bestshaftWorkspacePath + QDir::separator() + hash + QDir::separator() + defaultName;
+    QString filePath = bestshaftWorkspacePath + QDir::separator() + variant_name + QDir::separator() + defaultName;
 
     // save stl
     std::ofstream file;
@@ -299,18 +284,12 @@ int NXExtensionImpl::SaveSTL( BaseExtension::Variant variant )
     file << out.str();
     file.close();
 
-    QString bestshaftHomePath = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
-    QString tetgenPath = bestshaftHomePath + QDir::separator() + "tetgen.exe";
+    // return values
+    returned_file_path = filePath;
+    returned_max_facet_size = faceting_parameters.max_facet_size;
 
-    QProcess tetgen;
-    tetgen.start( tetgenPath,
-                  QStringList() << QString( "-ka%1" ).arg( faceting_parameters.max_facet_size ) << filePath );
-
-    if ( !tetgen.waitForStarted() )
-        return 5;
-
-    if ( !tetgen.waitForFinished() )
-        return 6;
+    // free memory
+    ::free( facet_vertices );
 
     return 0;
 }

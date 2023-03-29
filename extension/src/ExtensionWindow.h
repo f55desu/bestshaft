@@ -5,6 +5,10 @@
 
 #define MaxRecentFiles 5
 
+//#define ERROR_TYPE_EMPTY 0
+#define ERROR_TYPE_TETGEN 1
+#define ERROR_TYPE_SAVESTL 2
+
 class BaseExtension;
 
 class ExtensionWindow : public QDialog, public Ui::ExtensionWindow
@@ -46,7 +50,7 @@ private:
 private:
     void startTetgen( int selectedItemId );
     void startCalculix( int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit );
-    void on_solve_stop( int error, ... );
+    void on_solve_stop( int type, int error, ... );
 
 //private:
 //    void createLanguageMenu();

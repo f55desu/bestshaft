@@ -29,8 +29,8 @@ public:
 public:
     typedef QMap<QString, double> Variant;
 
-   QList<Variant> variants;
-   //QMap<QString, Variant> model;
+    QList<Variant> variants;
+    //QMap<QString, Variant> model;
 
 public:
     BaseExtension& operator=( const BaseExtension& ) {}
@@ -72,7 +72,7 @@ protected:
     virtual void ApplyVariant( Variant variant ) = 0;
 
 //    virtual void CalculateMaxTension( Variant variant ) = 0;
-    virtual int SaveSTL( Variant variant ) = 0;
+    virtual int SaveSTL( const QString& variant_name, QString& returned_file_path, double& returned_max_facet_size ) = 0;
 
 //protected:
 //    virtual QString Test() = 0;
