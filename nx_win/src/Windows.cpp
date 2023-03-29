@@ -12,7 +12,7 @@ BOOL CALLBACK EnumWindowsProc( HWND hwnd, LPARAM lParam )
     if ( ::GetCurrentProcessId() == ProcID )
     {
         hwnd = ::GetAncestor( hwnd, GA_ROOTOWNER );
-        *( ( LPDWORD )lParam ) = ( DWORD )hwnd;
+        *( ( LONG_PTR* )lParam ) = ( __int64 )hwnd;
         return FALSE;
     }
 

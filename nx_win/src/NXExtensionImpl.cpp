@@ -132,13 +132,8 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
 
 void NXExtensionImpl::ApplyVariant(BaseExtension::Variant variant)
 {
-    //tag_t tagDisplayPart = ::UF_PART_ask_display_part();
     for (auto &var : variant.keys())
     {
-//        tag_t expression_tag;
-//        // Ask for expression tag by label first
-//        UF_CALL(::UF_MODL_ask_exp_tag_by_name(var.toStdString(), &expression_tag));
-
         // Set new value for expression by providing an entire expression like 'exp=value'
         QString exp = QString(var + "=" + QString::number((variant[var])));
         QByteArray byteArray = exp.toStdString().c_str();

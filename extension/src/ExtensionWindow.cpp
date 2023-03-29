@@ -9,13 +9,24 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     installEventFilter( this );
 
     // Selecting one row at once
-    tableWidget->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows );
     // Multiply selection of rows with ctrl
-    tableWidget->setSelectionMode(QAbstractItemView::ExtendedSelection);
+    tableWidget->setSelectionMode( QAbstractItemView::ExtendedSelection );
 
-    connect(tableWidget, SIGNAL(itemSelectionChanged()), this, SLOT(onMultiplySelection()));
+    connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
+    connect( tableWidget, &QTableWidget::cellChanged, this, &ExtensionWindow::on_cellChanged );
+    calculateButton->setToolTip( "Calculate selected variant(s) Von Mises" );
+    deleteButton->setToolTip( "Delete selected variant(s)" );
+    applyButton->setToolTip( "Apply selected variant to the current model" );
+    addButton->setToolTip( "Add a copy of selected variant or add a current variant applied to model" );
+    paraviewButton->setToolTip( "Open in ParaView selected variant(s)" );
 
+    tableWidget->setSortingEnabled( true );
+    tableWidget->sortByColumn( tableWidget->columnCount() - 1, Qt::DescendingOrder );
+
+    currentVariantId = 0;
     on_addButton_clicked();
+    boldRow( currentVariantId, tableWidget );
 }
 
 ExtensionWindow::~ExtensionWindow()
@@ -64,6 +75,7 @@ void ExtensionWindow::showEvent( QShowEvent* e )
 
 void ExtensionWindow::closeEvent( QCloseEvent* event )
 {
+    Q_UNUSED( event );
 //    if ( mayBeSave() )
 //        event->accept();
 //    else
@@ -75,93 +87,447 @@ void ExtensionWindow::on_actionExit_triggered()
     close();
 }
 
+int ExtensionWindow::GetColumnId( const QString& name )
+{
+    for ( int i = 1; i < tableWidget->columnCount() - 1; i++ )
+    {
+        if ( tableWidget->horizontalHeaderItem( i )->text() == name )
+            return i;
+    }
+
+    return -1;
+}
+
+QString ExtensionWindow::GenerateVariantName()
+{
+    QString name;
+
+    int j = 1, i;
+
+    goto label_start;
+
+    while ( i < tableWidget->rowCount() )
+    {
+        if ( tableWidget->item( i, 0 ) && tableWidget->item( i, 0 )->text() == name )
+        {
+label_start:
+            name = QString( "Variant #%1" ).arg( j++ );
+            i = 0;
+            continue;
+        }
+
+        i++;
+    }
+
+    return name;
+}
+
+void ExtensionWindow::on_cellChanged( int row, int column )
+{
+    if ( column != 0 )
+        return;
+
+    QRegularExpression re( "^[^\\/:*?\"<>|]*$" );
+    QRegularExpressionMatch match;
+
+    if ( tableWidget->item( row, 0 ) && !( match = re.match( tableWidget->item( row, 0 )->text() ) ).hasMatch() )
+    {
+        tableWidget->item( row, 0 )->setText( GenerateVariantName() );
+        return;
+    }
+
+    for ( int i = 0; i < tableWidget->rowCount(); i++ )
+        if ( i != row && tableWidget->item( i, 0 )->text() == tableWidget->item( row, 0 )->text() )
+        {
+            tableWidget->item( row, 0 )->setText( GenerateVariantName() );
+            break;
+        }
+}
+
 void ExtensionWindow::on_addButton_clicked()
 {
+    Q_ASSERT( tableWidget->rowCount() > 0 && tableWidget->selectionModel()->selectedRows().size() == 1 );
+
+    int rowCount = tableWidget->rowCount();
+
+    if ( rowCount == 0 )
+    {
+        initilizeVariant();
+        return;
+    }
+
+    int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
+
+    std::map<QString, double> variant_from_table;
+
+    for ( int i = 1; i < tableWidget->columnCount() - 1; i++ )
+    {
+        // Takeout table information and add to variant
+        variant_from_table.insert( std::pair( tableWidget->horizontalHeaderItem( i )->text(), tableWidget->item( selectedRowId,
+                                                                                                                 i )->text().toDouble() ) );
+    }
+
     BaseExtension::Variant variant = m_extension->ExtractVariant();
 
-    tableWidget->setColumnCount( variant.count() + 2); // Variant columns + VarCol + VonMisesCol
-//    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows ); // Selecting one row at once
-//    tableWidget->setSelectionMode( QAbstractItemView::MultiSelection ); // Multiply selection of rows
+    std::map<QString, double> variant_from_model( variant.toStdMap() );
+
+    auto compare = []( auto & x, auto & y )
+    {
+        return x.first < y.first;
+    };
+
+    // Setting an intersection between model and seleceted variants
+    std::vector<std::pair<QString, double>> intersection;
+
+    std::set_intersection( variant_from_model.begin(), variant_from_model.end(),
+                           variant_from_table.begin(), variant_from_table.end(),
+                           std::back_inserter( intersection ), compare );
+
+    // Setting difference between model and selected variants
+    std::vector<std::pair<QString, double>> difference_model_table;
+
+    std::set_difference( variant_from_model.begin(), variant_from_model.end(),
+                         variant_from_table.begin(), variant_from_table.end(),
+                         std::back_inserter( difference_model_table ), compare );
+
+    // Setting difference between selected and model variants
+    std::vector<std::pair<QString, double>> difference_table_model;
+
+    std::set_difference( variant_from_table.begin(), variant_from_table.end(),
+                         variant_from_model.begin(), variant_from_model.end(),
+                         std::back_inserter( difference_table_model ), compare );
+
+    for ( const auto& i : difference_model_table )
+    {
+        int insertedColumnId = tableWidget->columnCount() - 1;
+        tableWidget->insertColumn( insertedColumnId );
+        tableWidget->setHorizontalHeaderItem( insertedColumnId, new QTableWidgetItem( i.first ) );
+
+        for ( int i = 0; i < tableWidget->rowCount(); i++ )
+        {
+            QTableWidgetItem* item = new QTableWidgetItem( "—" );
+            item->setFlags( item->flags() & ~Qt::ItemIsEditable );
+            tableWidget->setItem( i, insertedColumnId, item );
+        }
+    }
+
+    tableWidget->insertRow( tableWidget->rowCount() );
+
+    int insertedRowId = tableWidget->rowCount() - 1;
+
+    tableWidget->setItem( insertedRowId, 0,
+                          new QTableWidgetItem( GenerateVariantName() ) );
+
+    for ( const auto& it : difference_table_model )
+    {
+        QTableWidgetItem* item = new QTableWidgetItem( "—" );
+        item->setFlags( item->flags() & ~Qt::ItemIsEditable );
+        tableWidget->setItem( insertedRowId, GetColumnId( it.first ), item );
+    }
+
+    for ( const auto& it : intersection )
+        tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
+                              new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
+
+    for ( const auto& it : difference_model_table )
+        tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
+                              new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
+
+    QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
+    vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable );
+    tableWidget->setItem( insertedRowId, tableWidget->columnCount() - 1, vonmises_item );
+
+    tableWidget->selectRow( rowCount );
+
+    m_extension->variants.append( variant );
+}
+
+void ExtensionWindow::initilizeVariant()
+{
+    QApplication::setOverrideCursor( Qt::BusyCursor );
+
+    BaseExtension::Variant variant = m_extension->ExtractVariant();
+    m_extension->variants.append( variant );
+
+    tableWidget->setColumnCount( variant.count() + 2 ); // Variant columns + VarCol + VonMisesCol
 
     QStringList headersList;
 
-    headersList.append("Var\\Par");
-    for (const auto &var : variant.keys())
+    if ( tableWidget->columnCount() < 1 )
     {
-        headersList.append(QString(var));
+        for ( int i = 0; i < tableWidget->columnCount(); i++ )
+            headersList.append( tableWidget->horizontalHeaderItem( i )->text() );
+
+        bool inHeadersList = false;
+
+        for ( const auto& var : variant.keys() )
+        {
+            for ( int i = 0; i < headersList.count(); i++ )
+            {
+                if ( headersList[i] == var )
+                    inHeadersList = true;
+            }
+
+            if ( !inHeadersList )
+                headersList.insert( headersList.count() - 2, var );
+        }
     }
-    headersList.append("Von Mises");
+    else
+    {
+        headersList.append( "Var\\Par" );
+
+        for ( const auto& var : variant.keys() )
+            headersList.append( QString( var ) );
+
+        headersList.append( "Von Mises" );
+    }
 
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
-    QTableWidgetItem *id = new QTableWidgetItem(QString::number(rowCount+1));
-    tableWidget->setItem(rowCount, 0, id);
+    QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
+    tableWidget->setItem( rowCount, 0, id );
 
-    int index = 0;
-    for (const auto &var : variant.keys())
+    for ( const auto& var : variant.keys() )
     {
-        QTableWidgetItem *item = new QTableWidgetItem(QString::number(variant[var]));
-        tableWidget->setItem(rowCount, index+1, item);
-        ++index;
+        for ( int i = 0; i < tableWidget->columnCount(); i++ )
+        {
+            if ( tableWidget->horizontalHeaderItem( i )->text() == var )
+            {
+                QTableWidgetItem* item = new QTableWidgetItem( QString::number( variant[var] ) );
+                tableWidget->setItem( rowCount, i, item );
+            }
+        }
     }
-    QTableWidgetItem *item = new QTableWidgetItem("—");
-    tableWidget->setItem(rowCount, index+1, item); // Cтавится прочерк у Von Mises.
-}
 
+    QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
+    vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
+    tableWidget->setItem( rowCount, tableWidget->columnCount() - 1, vonmises_item ); // Cтавится прочерк у Von Mises.
+
+    QApplication::restoreOverrideCursor();
+}
 
 void ExtensionWindow::on_applyButton_clicked()
 {
+    QApplication::setOverrideCursor( Qt::BusyCursor );
+    applyButton->setEnabled( false );
+    QApplication::processEvents();
+
     BaseExtension::Variant variant;
+
+    // Unbold all
+    for ( int row = 0; row < tableWidget->rowCount(); ++row )
+        boldRow( row, tableWidget, false );
+
     int selectedRowId = tableWidget->selectionModel()->selectedRows().first().row();
 
-    int columnsCount = tableWidget->columnCount();
-    for (int i = 1; i < columnsCount; i++)
+    currentVariantId = selectedRowId;
+    boldRow( currentVariantId, tableWidget );
+
+    for ( int i = 1; i < tableWidget->columnCount() - 1; i++ )
     {
         // Takeout table information and add to variant
-        variant.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(selectedRowId, i)->text().toDouble());
+        variant.insert( tableWidget->horizontalHeaderItem( i )->text(), tableWidget->item( selectedRowId,
+                                                                                           i )->text().toDouble() );
     }
 
-    m_extension->ApplyVariant(variant);
+    m_extension->ApplyVariant( variant );
+
+    onMultiplySelection();
+    applyButton->setEnabled( true );
+    QApplication::restoreOverrideCursor();
 }
 
+void ExtensionWindow::startTetgen( int selectedItemId )
+{
+    // BaseExtension::Variant variant = m_model[tableWidget->item( i, 0 )->text()];
+
+    // SaveSTL( tableWidget->item( selectedItemId, 0 )->text() );
+
+    m_currentProcess = new QProcess();
+    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
+    connect(m_currentProcess, &QProcess::errorOccurred, [=](QProcess::ProcessError error)
+    {
+        // TODO: Make it in logs
+        qDebug() << "error enum val = " << error;
+    });
+    m_currentProcess->setProcessChannelMode(QProcess::MergedChannels);
+    // cmd.exe process did not terminate itself after executing
+    //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
+    m_currentProcess->start("notepad.exe");
+
+    // TODO: Bind with tetgen and calculix processes
+//    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::startCalculix );
+//    m_currentProcess->startDetached( m_extension->GetPluginBinDir() + QDir::separator() + "tetgen.exe",
+//                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
+//                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
+//                                     + QDir::separator() + "mesh.stl" );
+
+    if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
+        emit on_solve_stop( m_currentProcess->error());
+}
+
+void ExtensionWindow::startCalculix( int exitCode, QProcess::ExitStatus exitStatus)
+{
+    // TODO: Bind with tetgen and calculix processes
+//    if (exitCode)
+//       emit on_solve_stop(exitCode,exitStatus)
+//    log m_currentProcess.readAll();
+//    m_currentProcess = new QProcess( parent() );
+//    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
+//    m_currentProcess->startDetached( m_extension->GetPluginBinDir() + QDir::separator() + "calculix.exe",
+//                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
+//                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
+//                                     + QDir::separator() + "mesh.stl" );
+
+//    if ( !m_currentProcess->waitForStarted() )
+//        emit on_solve_stop( m_currentProcess->error(), ... );
+}
+
+void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus exitStatus)
+{
+    double someValue = calculateMaxTension();
+
+    tableWidget->item(currentVariantId, tableWidget->columnCount()-1)->setText(QString::number(someValue));
+    emit on_solve_stop( exitCode/*no error*/ );
+}
+
+void ExtensionWindow::on_solve_stop( int error, ... )
+{
+    if (error)
+        qDebug() << QString("Tetgen return %1 error code").arg(error);
+    //BaseExtension::m_logger.error(QString("Tetgen return %1 error code").arg(error));
+    //
+    //messagebox tetgen->error()
+    //else
+    //
+    //        int colCount = tableWidget->columnCount();
+    //        int selectedRow = selectedRows[i].row();
+    //        QTableWidgetItem* selectedItem;
+    //        selectedItem = new QTableWidgetItem( QString::number( someValue ) );
+
+    //        tableWidget->setItem( selectedRow, colCount - 1, selectedItem ); // Set the Von Misses Col
+
+    calculateButton->setText( m_tmpName );
+    QApplication::restoreOverrideCursor();
+    // activate interface
+    paraviewButton->setEnabled(true);
+    deleteButton->setEnabled(true);
+    addButton->setEnabled(true);
+    applyButton->setEnabled(true);
+    tableWidget->setEnabled(true);
+}
+
+void ExtensionWindow::on_cancelButton_clicked()
+{
+    if (m_currentProcess->state() == QProcess::Running)
+        m_currentProcess->terminate();
+    QPushButton *button = (QPushButton*)sender();
+    button->setText( m_tmpName );
+    button->disconnect();
+    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked);
+    QApplication::restoreOverrideCursor();
+    // activate interface
+    paraviewButton->setEnabled(true);
+    deleteButton->setEnabled(true);
+    addButton->setEnabled(true);
+    applyButton->setEnabled(true);
+    tableWidget->setEnabled(true);
+}
 
 void ExtensionWindow::on_calculateButton_clicked()
 {
+    QApplication::setOverrideCursor( Qt::BusyCursor );
+    //deactivate all interface
+    QPushButton *button = (QPushButton*)sender();
+    m_tmpName = button->text();
+    button->setText( tr("&Cancel") );
+    button->disconnect();
+    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked);
+
+    //Deactivate all except cancel
+    paraviewButton->setEnabled(false);
+    deleteButton->setEnabled(false);
+    addButton->setEnabled(false);
+    applyButton->setEnabled(false);
+    tableWidget->setEnabled(false);
+
+    QApplication::processEvents();
+
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
     for (int i = 0; i < selectedRows.count(); i++)
     {
-        double someValue = 0.0;
-        someValue = calculateMaxTension();
+        if ( currentVariantId != selectedRows[i].row() )
+            on_applyButton_clicked();
 
-        int colCount = tableWidget->columnCount();
-        int selectedRow = selectedRows[i].row();
-        QTableWidgetItem *selectedItem;
-        selectedItem = new QTableWidgetItem(QString::number(someValue));
-
-        tableWidget->setItem(selectedRow, colCount - 1, selectedItem); // Set the Von Misses Col
+        emit startTetgen( selectedRows[i].row() );
     }
 }
 
-
 void ExtensionWindow::on_paraviewButton_clicked()
 {
+    QApplication::setOverrideCursor( Qt::BusyCursor );
 
+    auto selectedRows = tableWidget->selectionModel()->selectedRows();
+
+    // paraview code
+
+    QApplication::restoreOverrideCursor();
 }
 
 
 void ExtensionWindow::on_deleteButton_clicked()
 {
-    QModelIndexList selection = tableWidget->selectionModel()->selectedRows();
+    // Delete all selected rows
+    QList<QTableWidgetItem*> selectedItems = tableWidget->selectedItems();
+    QVector<int> rowsToDelete;
+    int row = 0;
 
-    for (int i = 0; i < selection.count(); i++)
+    QString message;
+
+    // Fill the vector with unique rows
+    for ( QTableWidgetItem* item : selectedItems )
     {
-        int row = selection.at(i).row();
-        tableWidget->removeRow(row);
+        row = item->row();
+
+        if ( !rowsToDelete.contains( row ) )
+        {
+            rowsToDelete.append( row );
+        }
+
     }
+    if (!rowsToDelete.empty() && rowsToDelete.size() == 1)
+        message.append(QString("You are about to delete %1").arg(tableWidget->item(rowsToDelete.first(), 0)->text()));
+    else
+        message.append(QString("You are about to delete %1 items").arg(rowsToDelete.size()));
+
+    message.append("\nDo you want to proceed?");
+
+    QMessageBox msgBox;
+    msgBox.setText(message);
+    msgBox.setIcon(QMessageBox::Question);
+    msgBox.setWindowTitle(QString("BestShaft"));
+    msgBox.setParent(this); // Set parent to current widget
+    msgBox.setWindowModality(Qt::WindowModal);
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    int ret = msgBox.exec();
+    if (ret == QMessageBox::Yes)
+    {
+        // Sort the rows Id's
+        std::sort( rowsToDelete.begin(), rowsToDelete.end(), std::greater<int>() );
+
+        // Delete them
+        for ( int row : rowsToDelete )
+            tableWidget->removeRow( row );
+
+        if ( tableWidget->rowCount() < 1 )
+            addButton->setEnabled( true );
+    }
+    else if (ret == QMessageBox::No)
+        return;
 }
 
 // Buttons to be disabled if action cannot be performed
@@ -172,22 +538,42 @@ void ExtensionWindow::onMultiplySelection()
 
     // Count the unique rows within the selected ranges
     QSet<int> selectedRows;
-    foreach (QTableWidgetSelectionRange range, ranges)
+
+    foreach ( QTableWidgetSelectionRange range, ranges )
     {
-        for (int row = range.topRow(); row <= range.bottomRow(); ++row)
-        {
-            selectedRows.insert(row);
-        }
+        for ( int row = range.topRow(); row <= range.bottomRow(); ++row )
+            selectedRows.insert( row );
     }
 
-    applyButton->setEnabled(selectedRows.count() == 1); // Can't apply multiply variants
+    // Can't open in ParaView zero variants
+    paraviewButton->setEnabled( selectedRows.count() >= 1 );
+    // Can't calculate zero variants
+    calculateButton->setEnabled( selectedRows.count() >= 1 );
+    // Can't delete zero variants and can't delete applied variant
+    deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains(currentVariantId) );
+    // Can't copy multiply variants
+    addButton->setEnabled( selectedRows.count() == 1 );
+    // Can't apply multiply variants
+    applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains(currentVariantId) );
 }
 
 double ExtensionWindow::calculateMaxTension()
 {
-    srand(time(NULL));
-    double random_double = static_cast<double>(rand()) / RAND_MAX;
+    srand( time( NULL ) );
+    double random_double = static_cast<double>( rand() ) / RAND_MAX;
     return random_double;
+}
+
+// Bold specific row
+void ExtensionWindow::boldRow( int rowId, QTableWidget* tableWidget, bool bold )
+{
+    for ( int column = 0; column < tableWidget->columnCount(); ++column )
+    {
+        QTableWidgetItem* item = tableWidget->item( rowId, column );
+        QFont font = item->font();
+        font.setBold( bold );
+        item->setFont( font );
+    }
 }
 
 bool ExtensionWindow::eventFilter( QObject* obj, QEvent* e )

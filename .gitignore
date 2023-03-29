@@ -1,9 +1,14 @@
+.gitignore
+
 *.user
 .qmake.stash
 version.h
 run_config.txt
 
 system.pro.user.*
+system.pro*.user
+
+proto/build
 
 [Dd]ebug/
 [Rr]elease/

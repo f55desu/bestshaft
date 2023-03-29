@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>Dialog</class>
+ <widget class="QDialog" name="Dialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>600</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QTableWidget" name="tableWidget">
+     <row>
+      <property name="text">
+       <string/>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string/>
+      </property>
+     </row>
+     <row>
+      <property name="text">
+       <string/>
+      </property>
+     </row>
+     <column>
+      <property name="text">
+       <string>Col0</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Col1</string>
+      </property>
+     </column>
+     <column>
+      <property name="text">
+       <string>Col2</string>
+      </property>
+     </column>
+     <item row="0" column="0">
+      <property name="text">
+       <string>sss</string>
+      </property>
+     </item>
+     <item row="0" column="1">
+      <property name="text">
+       <string>v0</string>
+      </property>
+     </item>
+     <item row="0" column="2">
+      <property name="text">
+       <string>vv0</string>
+      </property>
+     </item>
+     <item row="1" column="0">
+      <property name="text">
+       <string>1</string>
+      </property>
+     </item>
+     <item row="1" column="1">
+      <property name="text">
+       <string>v1</string>
+      </property>
+     </item>
+     <item row="1" column="2">
+      <property name="text">
+       <string>vv1</string>
+      </property>
+     </item>
+     <item row="2" column="0">
+      <property name="text">
+       <string>2</string>
+      </property>
+     </item>
+     <item row="2" column="1">
+      <property name="text">
+       <string>v2</string>
+      </property>
+     </item>
+     <item row="2" column="2">
+      <property name="text">
+       <string>vv2</string>
+      </property>
+     </item>
+    </widget>
+   </item>
+   <item>
+    <widget class="QTableView" name="tableView">
+     <attribute name="horizontalHeaderVisible">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+      <bool>false</bool>
+     </attribute>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="pushButton">
+     <property name="text">
+      <string>PushButton</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="solveButton">
+     <property name="text">
+      <string>Solve</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+       <widget class="QPushButton" name="pushButton_2">
+        <property name="text">
+         <string>Load</string>
+        </property>
+       </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
