@@ -12,3 +12,7 @@ proto/build
 
 [Dd]ebug/
 [Rr]elease/
+
+old/
+
+external/CalculiX/

@@ -4,7 +4,9 @@ PATCH = 0
 
 TARGET = nx_win
 TEMPLATE = lib
+
 CONFIG += shared
+
 QT += qml widgets
 
 include(../system.pri)
@@ -17,7 +19,7 @@ LIBS += -L"$$NXINCLUDE"
 
 win32-msvc*: LIBS += user32.lib advapi32.lib
 
-LIBS += -lextension -llibufun -llibugopenint
+LIBS += -lextension -llibufun -llibugopenint -llibufun_cae
 
 DLLDESTDIR = ../$$DESTDIR/startup
 

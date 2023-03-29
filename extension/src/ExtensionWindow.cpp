@@ -1,4 +1,5 @@
 #include "Stable.h"
+
 #include "BaseExtension.h"
 #include "ExtensionWindow.h"
 
@@ -458,7 +459,7 @@ void ExtensionWindow::on_calculateButton_clicked()
 
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
-    for (int i = 0; i < selectedRows.count(); i++)
+    for ( int i = 0; i < selectedRows.count(); i++ )
     {
         if ( currentVariantId != selectedRows[i].row() )
             on_applyButton_clicked();

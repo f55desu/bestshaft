@@ -43,7 +43,12 @@ private:
 //    QString PreprocessModel();
 protected:
     Variant ExtractVariant();
-    void ApplyVariant(Variant variant);
+    void ApplyVariant( BaseExtension::Variant variant );
+
+//    void CalculateMaxTension( BaseExtension::Variant variant );
+    int SaveSTL( BaseExtension::Variant variant );
+//    void writeSTL( const std::vector<double>& vertices, const std::string& filename );
+
 //public slots:
 //    void CheckContextIsValid();
 //public slots:
