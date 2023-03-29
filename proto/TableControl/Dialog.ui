@@ -94,6 +94,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QTableView" name="tableView">
+     <attribute name="horizontalHeaderVisible">
+      <bool>true</bool>
+     </attribute>
+     <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+      <bool>false</bool>
+     </attribute>
+    </widget>
+   </item>
+   <item>
     <widget class="QPushButton" name="pushButton">
      <property name="text">
       <string>PushButton</string>
@@ -101,9 +111,15 @@
     </widget>
    </item>
    <item>
+<<<<<<< HEAD
     <widget class="QPushButton" name="solveButton">
      <property name="text">
       <string>Solve</string>
+=======
+    <widget class="QPushButton" name="pushButton_2">
+     <property name="text">
+      <string>Load</string>
+>>>>>>> c2a8b55771909f436c0902f27c185c83d93c95ca
      </property>
     </widget>
    </item>
