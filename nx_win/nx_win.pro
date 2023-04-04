@@ -19,7 +19,7 @@ LIBS += -L"$$NXINCLUDE"
 
 win32-msvc*: LIBS += user32.lib advapi32.lib
 
-LIBS += -lextension -llibufun -llibugopenint -llibufun_cae
+LIBS += -lextension -llibufun -llibugopenint
 
 DLLDESTDIR = ../$$DESTDIR/startup
 
