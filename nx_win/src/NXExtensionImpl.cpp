@@ -2,6 +2,8 @@
 #include "NXExtensionImpl.h"
 #include "../../utils/Point.h"
 
+double Point3D::tolerance = 1e-3;
+
 NXExtensionImpl NXExtensionImpl::m_instance;
 HHOOK NXExtensionImpl::m_hHook = 0x0;
 
@@ -196,9 +198,9 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
                                      &faceting_parameters,
                                      &tag_faceted_model ) );
 
-    // поток для вывода в STL файл
-    std::ostringstream out;
-    out << "solid my_solid\n";
+    // потоки для вывода в STL файл, в файл ограничений и нагрузок
+    std::ostringstream out_stl, out_constraints, out_forces, out_vertices;
+    out_stl << "solid my_solid\n";
 
     // запросить количество вершин фасетной модели
     int facet_id = UF_FACET_NULL_FACET_ID;
@@ -206,9 +208,14 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
 
     // каждый фасет (полигон) всегда состоит из 3-х вершин
     // двумерный массив под вершины фасетной модели
-    double ( * facet_vertices )[3];
-    int facet_vertices_size = 9 * sizeof( double );
-    facet_vertices = ( double( * )[3] )malloc( facet_vertices_size );
+    double facet_vertices[3][3];
+
+    tag_t saved_face_tag = NULL_TAG;
+
+//    unsigned int vertex_counter = 0;
+
+    std::set<TetgenPoint3D> cached_tetgen_points;
+    std::set<TetgenFacet> cached_tetgen_facets;
 
     while ( facet_id != UF_FACET_NULL_FACET_ID )
     {
@@ -218,19 +225,127 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
                                                    &verts_in_facet,
                                                    facet_vertices ) );
 
-        out << "  facet normal 0 0 0\n";
-        out << "    outer loop\n";
+        tag_t face_tag = NULL_TAG;
+        UF_CALL( ::UF_FACET_ask_solid_face_of_facet( tag_faceted_model,
+                                                     facet_id,
+                                                     &face_tag ) );
+
+        if ( saved_face_tag != face_tag )
+            saved_face_tag = face_tag;
+
+        // check constraint
+        const char* title_constraint = "CONST";
+        char* string_value_constraint = 0;
+        logical has_attribute_constraint = false;
+        UF_CALL( ::UF_ATTR_get_string_user_attribute( face_tag,
+                                                      title_constraint,
+                                                      UF_ATTR_NOT_ARRAY,
+                                                      &string_value_constraint,
+                                                      &has_attribute_constraint ) );
+
+        // check force
+        const char* title_force = "FORCE";
+        char* string_value_force = 0;
+        logical has_attribute_force = false;
+        UF_CALL( ::UF_ATTR_get_string_user_attribute( face_tag,
+                                                      title_force,
+                                                      UF_ATTR_NOT_ARRAY,
+                                                      &string_value_force,
+                                                      &has_attribute_force ) );
+
+        out_stl << "  facet normal 0 0 0\n";
+        out_stl << "    outer loop\n";
+
+//        // cache start and middle points from facet
+//        TetgenPoint3D tet_point_start,
+//                      tet_point_middle;
+
+        TetgenFacet tetgen_facet;
+        tetgen_facet.marker = BoundaryMarker::DEFAULT;
 
         for ( int i = 0; i < verts_in_facet; i++ )
-            out << "      vertex " << facet_vertices[i][0] << " " << facet_vertices[i][1] << " " << facet_vertices[i][2] << "\n";
+        {
+            Point3D current_point( facet_vertices[i][0], facet_vertices[i][1], facet_vertices[i][2] );
+            TetgenPoint3D current_tet_point{ current_point, BoundaryMarker::DEFAULT };
 
-        out << "    endloop\n";
-        out << "  endfacet\n";
+            // write vertices to stl
+            out_stl << "      vertex " << current_point.x << " " << current_point.y << " " << current_point.z << "\n";
 
+            if ( has_attribute_constraint )
+            {
+                current_tet_point.marker = BoundaryMarker::CONSTRAINT;
+
+
+//                // facet has constraint
+//                out_constraints << vertex_counter << ",0,0.0\n"     // x
+//                                << vertex_counter << ",1,0.0\n"     // y
+//                                << vertex_counter << ",2,0.0\n";    // z
+            }
+
+            if ( has_attribute_force )
+            {
+                current_tet_point.marker = BoundaryMarker::FORCE;
+
+//                // facet has force
+//                out_forces << vertex_counter << ",0,0.0\n"     // x
+//                           << vertex_counter << ",1,0.0\n"     // y
+//                           << vertex_counter << ",2,0.0\n";    // z
+            }
+
+            switch ( i )
+            {
+                case 0:
+                    tetgen_facet.p1 = current_tet_point;    // start
+                    tetgen_facet.p4 = current_tet_point;    // end
+                    break;
+
+                case 1:
+                    tetgen_facet.p2 = current_tet_point;
+                    break;
+
+                case 2:
+                    // last point from facet
+                    tetgen_facet.p3 = current_tet_point;
+                    break;
+            }
+
+            // cache tetgen point
+            cached_tetgen_points.insert( current_tet_point );
+
+//            out_vertices << vertex_counter << ",0," << point.x << "\n"     // x
+//                         << vertex_counter << ",1," << point.y << "\n"     // y
+//                         << vertex_counter << ",2," << point.z << "\n";    // z
+        }
+
+        out_stl << "    endloop\n";
+        out_stl << "  endfacet\n";
+
+        if ( has_attribute_constraint )
+        {
+            // set facet boundary marker
+            tetgen_facet.marker = BoundaryMarker::CONSTRAINT;
+
+            // free memory
+            ::UF_free( string_value_constraint );
+        }
+
+        if ( has_attribute_force )
+        {
+            // set facet boundary marker
+            tetgen_facet.marker = BoundaryMarker::FORCE;
+
+            // free memory
+            ::UF_free( string_value_force );
+        }
+
+        // cache tetgen facet
+        cached_tetgen_facets.insert( tetgen_facet );    // fucking not work
+
+        // next facet
         UF_CALL( ::UF_FACET_cycle_facets( tag_faceted_model, &facet_id ) );
     }
 
-    out << "endsolid my_solid\n";
+    out_stl << "endsolid my_solid\n";
 
     // parameters
     QString homePath = QDir::homePath();
@@ -266,11 +381,10 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
         // folder created successfuly
     }
 
-    // folder exists
+    // if folder exists, write files. STL:
     QString defaultName = "model.tri.mesh.stl";
     QString filePath = bestshaftWorkspacePath + QDir::separator() + variant_name + QDir::separator() + defaultName;
 
-    // save stl
     std::ofstream file;
     file.open( filePath.toStdString(), std::ios::out );
 
@@ -281,15 +395,122 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
         return 4;
     }
 
-    file << out.str();
+    file << out_stl.str();
     file.close();
+
+    // write to .poly file
+    defaultName = "model.tri.mesh.poly";
+    filePath = bestshaftWorkspacePath + QDir::separator() + variant_name + QDir::separator() + defaultName;
+    writePolyFile( filePath.toStdString(), cached_tetgen_points, cached_tetgen_facets );
+
+//    // constraints:
+//    defaultName = "nodes.disp.csv";
+//    filePath = bestshaftWorkspacePath + QDir::separator() + variant_name + QDir::separator() + defaultName;
+
+//    file.open( filePath.toStdString(), std::ios::out );
+
+//    if ( !file.good() )
+//    {
+//        // problems with file
+//        file.close();
+//        return 5;
+//    }
+
+//    file << out_constraints.str();
+//    file.close();
+
+//    // forces:
+//    defaultName = "nodes.force.csv";
+//    filePath = bestshaftWorkspacePath + QDir::separator() + variant_name + QDir::separator() + defaultName;
+
+//    file.open( filePath.toStdString(), std::ios::out );
+
+//    if ( !file.good() )
+//    {
+//        // problems with file
+//        file.close();
+//        return 6;
+//    }
+
+//    file << out_forces.str();
+//    file.close();
+
+//    // all vertices:
+//    defaultName = "nodes.all.csv";
+//    filePath = bestshaftWorkspacePath + QDir::separator() + variant_name + QDir::separator() + defaultName;
+
+//    file.open( filePath.toStdString(), std::ios::out );
+
+//    if ( !file.good() )
+//    {
+//        // problems with file
+//        file.close();
+//        return 7;
+//    }
+
+//    file << out_vertices.str();
+//    file.close();
 
     // return values
     returned_file_path = filePath;
     returned_max_facet_size = faceting_parameters.max_facet_size;
 
-    // free memory
-    ::free( facet_vertices );
-
     return 0;
+}
+
+void NXExtensionImpl::writePolyFile( string fileName, std::set<TetgenPoint3D>& points, std::set<TetgenFacet>& facets )
+{
+    std::ofstream outFile( fileName );
+
+    // Write the number of points and dimensions to the file
+    outFile << points.size() << " 3 0 1" << std::endl;
+
+    // Write the points to the file
+    std::map<TetgenPoint3D, int> pointMap;
+    int index = 1;
+
+    for ( auto it = points.begin(); it != points.end(); it++ )
+    {
+        pointMap[*it] = index++;
+        outFile << pointMap[*it] << " " << it->point.x << " " << it->point.y << " " << it->point.z << " ";
+
+        if ( it->marker == BoundaryMarker::DEFAULT )
+            outFile << BoundaryMarker::DEFAULT;
+        else if ( it->marker == BoundaryMarker::CONSTRAINT )
+            outFile << BoundaryMarker::CONSTRAINT;
+        else if ( it->marker == BoundaryMarker::FORCE )
+            outFile << BoundaryMarker::FORCE;
+
+        outFile << std::endl;
+    }
+
+    // Write the number of facets to the file
+    outFile << facets.size() << " 1" << std::endl;
+
+    // Write the facets to the file
+    std::map<TetgenFacet, int> facetMap;
+    index = 1;
+
+    for ( auto it = facets.begin(); it != facets.end(); it++ )
+    {
+        outFile << "1 0 ";
+
+        if ( it->marker == BoundaryMarker::DEFAULT )
+            outFile << BoundaryMarker::DEFAULT;
+        else if ( it->marker == BoundaryMarker::CONSTRAINT )
+            outFile << BoundaryMarker::CONSTRAINT;
+        else if ( it->marker == BoundaryMarker::FORCE )
+            outFile << BoundaryMarker::FORCE;
+
+        outFile << "\n";
+
+        facetMap[*it] = index++;
+//        outFile << "4 " << pointMap[it->p1] << " " << pointMap[it->p2] << " " << pointMap[it->p3] << " " << pointMap[it->p4] <<
+//                std::endl;
+        outFile << "3 " << pointMap[it->p1] << " " << pointMap[it->p2] << " " << pointMap[it->p3] << std::endl;
+    }
+
+    // part 3 and part 4
+    outFile << "0\n0" << std::endl;
+    outFile.close();
 }
