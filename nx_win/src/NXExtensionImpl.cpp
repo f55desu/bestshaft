@@ -191,7 +191,6 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
     faceting_parameters.max_facet_size = corner_point[0].DistanceTo( corner_point[1] ) *
                                          0.03/*parameter to be configurable*/;
 
-
     // UF_FACET_facet_solid
     tag_t tag_faceted_model = NULL_TAG;
     UF_CALL( ::UF_FACET_facet_solid( tag_solid_body,
@@ -266,7 +265,7 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
         for ( int i = 0; i < verts_in_facet; i++ )
         {
             Point3D current_point( facet_vertices[i][0], facet_vertices[i][1], facet_vertices[i][2] );
-            TetgenPoint3D current_tet_point{ current_point, BoundaryMarker::DEFAULT };
+            TetgenPoint3D current_tet_point{ current_point, BoundaryMarker::DEFAULT, 0.0 };
 
             // write vertices to stl
             out_stl << "      vertex " << current_point.x << " " << current_point.y << " " << current_point.z << "\n";
@@ -296,7 +295,7 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
             {
                 case 0:
                     tetgen_facet.p1 = current_tet_point;    // start
-                    tetgen_facet.p4 = current_tet_point;    // end
+//                    tetgen_facet.p4 = current_tet_point;    // end
                     break;
 
                 case 1:
@@ -339,7 +338,7 @@ int NXExtensionImpl::SaveSTL( const QString& variant_name, QString& returned_fil
         }
 
         // cache tetgen facet
-        cached_tetgen_facets.insert( tetgen_facet );    // fucking not work
+        cached_tetgen_facets.insert( tetgen_facet );
 
         // next facet
         UF_CALL( ::UF_FACET_cycle_facets( tag_faceted_model, &facet_id ) );
@@ -513,4 +512,223 @@ void NXExtensionImpl::writePolyFile( string fileName, std::set<TetgenPoint3D>& p
     // part 3 and part 4
     outFile << "0\n0" << std::endl;
     outFile.close();
+}
+
+void NXExtensionImpl::SaveAbaqusInputFile( const QString& tetgen_output_nodes_file_path,
+                                           const QString& tetgen_output_faces_file_path,
+                                           const QString& tetgen_output_tetrahedrons_file_path,
+                                           const QString& calculix_input_file_path,
+                                           const QString& variant_name,
+                                           const double& applied_force )
+{
+    // read nodes
+    std::ifstream in( tetgen_output_nodes_file_path.toStdString() );
+
+    if ( !in.is_open() )
+        throw std::runtime_error( "Cannot open file " + tetgen_output_nodes_file_path.toStdString() );
+
+    int num_points, dimension, attributes_flag, boundary_markers_flag;
+    in >> num_points >> dimension >> attributes_flag >> boundary_markers_flag;
+
+    if ( num_points <= 0 || dimension != 3 || attributes_flag != 0 || boundary_markers_flag != 1 )
+        throw std::runtime_error( "Invalid .node file format" );
+
+    std::vector<TetgenPoint3D> points( num_points );
+
+    for ( std::vector<TetgenPoint3D>::iterator it = points.begin(), end = points.end(); it != end; it++ )
+        in >> *it;
+
+    in.close();
+
+    // read faces
+    in.open( tetgen_output_faces_file_path.toStdString() );
+
+    if ( !in.is_open() )
+        throw std::runtime_error( "Cannot open file " + tetgen_output_faces_file_path.toStdString() );
+
+    int num_faces;
+    boundary_markers_flag = 0;
+
+    in >> num_faces >> boundary_markers_flag;
+
+    if ( num_faces <= 0 || boundary_markers_flag != 1 )
+        throw std::runtime_error( "Invalid .face file format" );
+
+    int face_id/* ignored */, p1_id, p2_id, p3_id, boundary_marker;
+
+    double global_area = 0.0;
+    std::vector<Facet> facets;
+
+    for ( int index = 0; index < num_faces; index++ )
+    {
+        in >> face_id >> p1_id >> p2_id >> p3_id >> boundary_marker;
+
+        if ( boundary_marker != BoundaryMarker::FORCE )
+            continue;   // not force face
+
+        Facet facet( p1_id - 1, p2_id - 1, p3_id - 1 );
+
+        TetgenPoint3D p1 = points[facet._p1_id];
+        TetgenPoint3D p2 = points[facet._p2_id];
+        TetgenPoint3D p3 = points[facet._p3_id];
+
+        // calculate facet area
+        double a = p2.point.x - p1.point.x,
+               b = p2.point.y - p1.point.y,
+               c = p2.point.z - p1.point.z,
+               d = p3.point.x - p1.point.x,
+               e = p3.point.y - p1.point.y,
+               f = p3.point.z - p1.point.z;
+
+        double i = b * f - c * e,
+               j = c * d - a * f,
+               k = a * e - b * d;
+
+        double local_area = 0.5 * std::sqrt( i * i + j * j + k * k );
+        global_area += local_area;
+
+        // save facet
+        facet.facet_area = local_area;
+        facets.push_back( facet );
+    }
+
+    in.close();
+
+    // read tetrahedrones
+    in.open( tetgen_output_tetrahedrons_file_path.toStdString() );
+
+    if ( !in.is_open() )
+        throw std::runtime_error( "Cannot open file " + tetgen_output_tetrahedrons_file_path.toStdString() );
+
+    int num_tetrahedrons, nodes_per_tetrahedron;
+    attributes_flag = 0;
+
+    in >> num_tetrahedrons >> nodes_per_tetrahedron >> attributes_flag;
+
+    if ( num_tetrahedrons <= 0 || nodes_per_tetrahedron != 4 || attributes_flag != 0 )
+        throw std::runtime_error( "Invalid .ele file format" );
+
+    std::vector<Tetrahedron> tetrahedrons( num_tetrahedrons );
+
+    for ( std::vector<Tetrahedron>::iterator it = tetrahedrons.begin(), end = tetrahedrons.end(); it != end; it++ )
+        in >> *it;
+
+    in.close();
+
+    // write to abaqus
+    std::ofstream out( calculix_input_file_path.toStdString() );
+
+    if ( !out.is_open() )
+        throw std::runtime_error( "Cannot open file " + calculix_input_file_path.toStdString() );
+
+    // write header
+    out << "** General information\n"
+        << "*HEADING\n"
+        << variant_name.toStdString() << "\n\n";
+
+//    out << "*PREPRINT, ECHO=NO, MODEL=NO, HISTORY=NO\n\n";
+
+    // write nodes
+    out << "** Defien set for all model nodes\n"
+        << "*NODE, NSET=NODES\n";
+
+    for ( int i = 0; i < points.size(); i++ )
+        out << ( i + 1 ) << ", " << points[i].point.x << ", " << points[i].point.y << ", " << points[i].point.z << "\n";
+
+    out << "\n";
+
+    // write tetrahedrons
+    out << "** All tetrahedrons\n"
+        << "*ELEMENT, TYPE=C3D4, ELSET=TETRAHEDRONS\n";
+
+    for ( int i = 0; i < tetrahedrons.size(); i++ )
+        out << ( i + 1 ) << ", " << tetrahedrons[i].p1_id << ", " << tetrahedrons[i].p2_id << ", " <<
+            tetrahedrons[i].p3_id << ", " << tetrahedrons[i].p4_id << "\n";
+
+    out << "\n";
+
+    // define element set
+    out << "** Define set of elements\n"
+        << "*ELSET, ELSET=ELEMENTS\n"
+        << "TETRAHEDRONS\n\n";
+
+    // element sets for materials and FEM element type
+    out << "** Element sets for materials and FEM element type (solid, shell, beam, fluid)\n"
+        << "*ELSET, ELSET=STEEL_SOLID\n"
+        << "TETRAHEDRONS\n\n";
+
+    // print set of constraint nodes
+    out << "** Define set of constraint nodes\n"
+        << "*NSET, NSET=CONSTRAINT_FIXED\n";
+
+    for ( int i = 0; i < points.size(); i++ )
+        if ( points[i].marker == BoundaryMarker::CONSTRAINT )
+            out << ( i + 1 ) << ",\n";    // нулевое смещение в узле (закреплен намертво)
+
+    out << "\n";
+
+    // materials
+    out << "** Description of material properties\n"
+        << "*MATERIAL, NAME=STEEL\n"
+        << "*ELASTIC\n"
+        << "200.E9, 0.3\n\n";
+
+    // set solid section
+    out << "** Set material to all const nodes\n"
+        << "*SOLID SECTION, ELSET=STEEL_SOLID, MATERIAL=STEEL\n\n";
+
+//    // step begin
+//    out << "*STEP, PERTURBATION\n"
+//        << "*STATIC\n\n";
+
+    // step begin
+    out << "** Step begin\n"
+        << "*STEP\n"
+        << "*STATIC\n\n";
+
+    // fixed nodes
+    out << "** Fixed nodes\n"
+        << "*BOUNDARY\n"
+        << "CONSTRAINT_FIXED, 1\n"
+        << "CONSTRAINT_FIXED, 2\n"
+        << "CONSTRAINT_FIXED, 3\n\n";
+
+    // calculate loads
+    double distributed_load = applied_force /
+                              global_area;    // распределенная нагрузка грани, глобальная сила == 1
+
+    for ( Facet facet : facets )
+    {
+        double force = ( distributed_load * facet.facet_area ) / 3.0;
+
+        points[facet._p1_id].force_value += force;
+        points[facet._p2_id].force_value += force;
+        points[facet._p3_id].force_value += force;
+    }
+
+    // loads
+    out << "** Loads of each node\n"
+        << "*CLOAD\n";
+
+    for ( int i = 0; i < points.size(); i++ )
+        if ( points[i].marker == BoundaryMarker::FORCE )
+            out << ( i + 1 ) << ", 2, " << points[i].force_value << "\n";    // нагрузка против оси Y
+
+    out << "\n";
+
+    // print data
+    out << "** Output result to .frd and .dat files\n"
+        << "*NODE FILE\n"
+        << "U\n"
+        << "*EL FILE\n"
+        << "S, E\n"
+        << "*NODE PRINT, NSET=CONSTRAINT_FIXED, TOTALS=ONLY\n"
+        << "RF\n\n";
+
+    // end step
+    out << "** Step end\n"
+        << "*END STEP"
+        << std::endl;
+
+    out.close();
 }

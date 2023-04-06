@@ -347,10 +347,17 @@ void ExtensionWindow::startTetgen( int selectedItemId )
     // BaseExtension::Variant variant = m_model[tableWidget->item( i, 0 )->text()];
     // SaveSTL( tableWidget->item( selectedItemId, 0 )->text() );
 
+    const QString default_mesh_file_name = "model.tri.mesh";
+    const QString default_calculix_input_file_name = "ccx.input";
+
+    const QString home_path = QDir::homePath();
+    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
+    const QString variant_name = tableWidget->item( selectedItemId, 0 )->text();
+
     double returned_max_facet_size = -1;
     QString returned_file_path = "";
 
-    int error_code = m_extension->SaveSTL( tableWidget->item( selectedItemId, 0 )->text(), returned_file_path,
+    int error_code = m_extension->SaveSTL( variant_name, returned_file_path,
                                            returned_max_facet_size );
 
     if ( error_code || returned_max_facet_size < 0 || returned_file_path == "" )
@@ -360,8 +367,8 @@ void ExtensionWindow::startTetgen( int selectedItemId )
         return;
     }
 
-    QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
-    QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
+    const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
+    const QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
 
     m_currentProcess = new QProcess();
     connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
@@ -382,6 +389,31 @@ void ExtensionWindow::startTetgen( int selectedItemId )
 //                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
 //                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
 //                                     + QDir::separator() + "mesh.stl" );
+
+    // save abaqus input file
+    const QString tetgen_output_nodes_file_path = home_path + QDir::separator() + bestshaft_workspace_folder_name +
+                                                  QDir::separator() + variant_name + QDir::separator() +
+                                                  default_mesh_file_name + ".1.node";
+    const QString tetgen_output_faces_file_path = home_path + QDir::separator() + bestshaft_workspace_folder_name +
+                                                  QDir::separator() + variant_name + QDir::separator() +
+                                                  default_mesh_file_name + ".1.face";
+    const QString tetgen_output_tetrahedrones_file_path = home_path + QDir::separator() + bestshaft_workspace_folder_name +
+                                                          QDir::separator() + variant_name + QDir::separator() +
+                                                          default_mesh_file_name + ".1.ele";
+    const QString calculix_input_file_path = home_path + QDir::separator() + bestshaft_workspace_folder_name +
+                                             QDir::separator() + variant_name + QDir::separator() +
+                                             default_calculix_input_file_name + ".inp";
+
+    double force_value = 10.0;
+    m_extension->SaveAbaqusInputFile( tetgen_output_nodes_file_path,
+                                      tetgen_output_faces_file_path,
+                                      tetgen_output_tetrahedrones_file_path,
+                                      calculix_input_file_path,
+                                      variant_name,
+                                      force_value );
+
+    // run calculix
+
 
     if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
         emit on_solve_stop( ERROR_TYPE_TETGEN, m_currentProcess->error() );

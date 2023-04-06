@@ -42,11 +42,7 @@ private:
 
 //protected:
 //    QString PreprocessModel();
-protected:
-    Variant ExtractVariant();
-    void ApplyVariant( BaseExtension::Variant variant );
-
-//    void CalculateMaxTension( BaseExtension::Variant variant );
+public:
     enum BoundaryMarker
     {
         DEFAULT,
@@ -54,10 +50,18 @@ protected:
         FORCE
     };
 
+protected:
+    Variant ExtractVariant();
+    void ApplyVariant( BaseExtension::Variant variant );
+
+//    void CalculateMaxTension( BaseExtension::Variant variant );
+
     struct TetgenPoint3D
     {
         Point3D point;
         BoundaryMarker marker;
+
+        double force_value = 0.0;
 
         TetgenPoint3D& operator=( const TetgenPoint3D& other )
         {
@@ -81,14 +85,40 @@ protected:
         {
             return point < other.point;
         }
+
+        static void ConvertIntToBoundaryMarker( BoundaryMarker& obj, int value )
+        {
+            if ( value == 0 || value == -1 )
+                obj = BoundaryMarker::DEFAULT;
+            else if ( value == 1 )
+                obj = BoundaryMarker::CONSTRAINT;
+            else if ( value == 2 )
+                obj = BoundaryMarker::FORCE;
+            else
+                throw std::invalid_argument( "Invalid value for BoundaryMarker" );
+        }
+
+        friend std::istream& operator>>( std::istream& in, TetgenPoint3D& obj )
+        {
+            int id/* ignore */, marker_value;
+            in >> id >> obj.point.x >> obj.point.y >> obj.point.z >> marker_value;
+            TetgenPoint3D::ConvertIntToBoundaryMarker( obj.marker, marker_value );
+
+            return in;
+        }
+
+//        friend std::ostream& operator<<( std::ostream& out, const TetgenPoint3D& obj )
+//        {
+//            out << obj.point.x << " " << obj.point.y << " " << obj.point.z;
+//            return out;
+//        }
     };
 
     struct TetgenFacet
     {
-        TetgenPoint3D p1;
-        TetgenPoint3D p2;
-        TetgenPoint3D p3;
-        TetgenPoint3D p4;
+        TetgenPoint3D p1;   // first
+        TetgenPoint3D p2;   // middle
+        TetgenPoint3D p3;   // end
 
         BoundaryMarker marker;
 
@@ -97,7 +127,6 @@ protected:
             p1 = other.p1;
             p2 = other.p2;
             p3 = other.p3;
-            p4 = other.p4;
 
             marker = other.marker;
 
@@ -105,46 +134,88 @@ protected:
         }
 
         // Define operator< for TetgenFacet to use in set
-        bool operator<( const TetgenFacet& f2 ) const
+        bool operator<( const TetgenFacet& other ) const
         {
-            if ( p1 != f2.p1 )
-                return p1 < f2.p1;
-            else if ( p2 != f2.p2 )
-                return p2 < f2.p2;
-            else if ( p3 != f2.p3 )
-                return p3 < f2.p3;
+            if ( p1 != other.p1 )
+                return p1 < other.p1;
+            else if ( p2 != other.p2 )
+                return p2 < other.p2;
             else
-                return p4 < f2.p4;
+                return p3 < other.p3;
+        }
+    };
 
-//            // Sort the points in each facet so that the order of the points does not matter
-//            std::vector<TetgenPoint3D> thisPoints = {p1, p2, p3, p4};
-//            std::vector<TetgenPoint3D> otherPoints = {other.p1, other.p2, other.p3, other.p4};
-//            std::sort( thisPoints.begin(), thisPoints.end() );
-//            std::sort( otherPoints.begin(), otherPoints.end() );
+    struct Facet
+    {
+        int _p1_id,
+            _p2_id,
+            _p3_id;
 
-//            // Compare the sorted points
-//            return ( thisPoints[0] < otherPoints[0] ) ||
-//                   ( thisPoints[0] == otherPoints[0] && thisPoints[1] < otherPoints[1] ) ||
-//                   ( thisPoints[0] == otherPoints[0] && thisPoints[1] == otherPoints[1] && thisPoints[2] < otherPoints[2] ) ||
-//                   ( thisPoints[0] == otherPoints[0] && thisPoints[1] == otherPoints[1] && thisPoints[2] == otherPoints[2] &&
-//                     thisPoints[3] < otherPoints[3] );
+        double facet_area;
+
+        Facet() {}    // default
+        Facet( int p1_id, int p2_id, int p3_id ):
+            _p1_id( p1_id ), _p2_id( p2_id ), _p3_id( p3_id ), facet_area( 0.0 )
+        {}
+
+        Facet& operator=( const Facet& other )
+        {
+            _p1_id = other._p1_id;
+            _p2_id = other._p2_id;
+            _p3_id = other._p3_id;
+
+            return *this;
         }
 
-//        bool compareFacets( const TetgenFacet& f1, const TetgenFacet& f2 )
-//        {
-//            if ( f1.p1 != f2.p1 )
-//                return f1.p1 < f2.p1;
-//            else if ( f1.p2 != f2.p2 )
-//                return f1.p2 < f2.p2;
-//            else if ( f1.p3 != f2.p3 )
-//                return f1.p3 < f2.p3;
-//            else
-//                return f1.p4 < f2.p4;
-//        }
+        // Define operator< for TetgenFacet to use in set
+        bool operator<( const Facet& other ) const
+        {
+            if ( _p1_id != other._p1_id )
+                return _p1_id < other._p1_id;
+            else if ( _p2_id != other._p2_id )
+                return _p2_id < other._p2_id;
+            else
+                return _p3_id < other._p3_id;
+        }
+    };
+
+    struct Tetrahedron
+    {
+        int p1_id,
+            p2_id,
+            p3_id,
+            p4_id;
+
+        // Define operator< for TetgenFacet to use in set
+        bool operator<( const Tetrahedron& other ) const
+        {
+            if ( p1_id != other.p1_id )
+                return p1_id < other.p1_id;
+            else if ( p2_id != other.p2_id )
+                return p2_id < other.p2_id;
+            else if ( p3_id != other.p3_id )
+                return p3_id < other.p3_id;
+            else
+                return p4_id < other.p4_id;
+        }
+
+        friend std::istream& operator>>( std::istream& in, Tetrahedron& obj )
+        {
+            int id/* ignore */;
+            in >> id >> obj.p1_id >> obj.p2_id >> obj.p3_id >> obj.p4_id;
+            return in;
+        }
+
     };
 
     int SaveSTL( const QString& variant_name, QString& returned_file_path, double& returned_max_facet_size );
     void writePolyFile( std::string fileName, std::set<TetgenPoint3D>& points, std::set<TetgenFacet>& facets );
+    void SaveAbaqusInputFile( const QString& tetgen_output_nodes_file_path,
+                              const QString& tetgen_output_faces_file_path,
+                              const QString& tetgen_output_tetrahedrons_file_path,
+                              const QString& calculix_input_file_path,
+                              const QString& variant_name,
+                              const double& applied_force );
 //    void writeSTL( const std::vector<double>& vertices, const std::string& filename );
 
 //public slots:
