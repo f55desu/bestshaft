@@ -35,7 +35,6 @@ private slots:
     void on_paraviewButton_clicked();
     void on_deleteButton_clicked();
     void on_cancelButton_clicked();
-    void solveEnd( int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit );
 
     void onMultiplySelection();
     void on_cellChanged( int row, int column );
@@ -48,8 +47,11 @@ private:
     int GetColumnId( const QString& name );
     QString GenerateVariantName();
 private:
-    void startTetgen( int selectedItemId );
-    void startCalculix( int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit );
+    void startTetgen();
+    void tetgentEnd(int exitCode, QProcess::ExitStatus);
+    void startCalculix();
+    void calculixEnd(int exitCode, QProcess::ExitStatus);
+    void solveStart();
     void on_solve_stop( int type, int error, ... );
 
 //private:
@@ -62,9 +64,10 @@ protected:
 private:
     BaseExtension* m_extension;
     QProcess* m_currentProcess;
-    QString m_tmpName;
+    QModelIndexList m_rowsToBeProceed;
 private:
     int currentVariantId;
+    int m_currentIndex;
 private:
     QTranslator m_qtranslator;
 //private:
