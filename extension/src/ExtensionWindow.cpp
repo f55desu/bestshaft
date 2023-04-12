@@ -358,7 +358,7 @@ void ExtensionWindow::on_applyButton_clicked()
     QApplication::restoreOverrideCursor();
 }
 
-void ExtensionWindow::startTetgen()
+void ExtensionWindow::startSolve()
 {
     // BaseExtension::Variant variant = m_model[tableWidget->item( i, 0 )->text()];
     // SaveSTL( tableWidget->item( selectedItemId, 0 )->text() );
@@ -382,7 +382,7 @@ void ExtensionWindow::startTetgen()
     QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" + QDir::separator() + variantName;
 
     m_currentProcess = new QProcess();
-    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::tetgentEnd );
+    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
 
     m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
     // cmd.exe process did not terminate itself after executing
@@ -403,43 +403,13 @@ void ExtensionWindow::startTetgen()
     QApplication::restoreOverrideCursor();
 }
 
-void ExtensionWindow::tetgentEnd( int exitCode, QProcess::ExitStatus /*exitStatus*/ )
-{
-    if ( !exitCode )
-        emit startCalculix();
-    else
-        emit on_solve_stop( 0, exitCode/*no error*/ );
-}
-
-void ExtensionWindow::startCalculix()
-{
-    QApplication::setOverrideCursor( Qt::WaitCursor );
-    // TODO: Bind with tetgen and calculix processes
-//    if (exitCode)
-//       emit on_solve_stop(exitCode,exitStatus)
-//    log m_currentProcess.readAll();
-//    m_currentProcess = new QProcess( parent() );
-//    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-//    m_currentProcess->startDetached( m_extension->GetPluginBinDir() + QDir::separator() + "calculix.exe",
-//                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
-//                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
-//                                     + QDir::separator() + "mesh.stl" );
-
-    emit calculixEnd( 0, QProcess::NormalExit );
-
-//    if ( !m_currentProcess->waitForStarted() )
-//        emit on_solve_stop( m_currentProcess->error(), ... );
-    QApplication::restoreOverrideCursor();
-}
-
-void ExtensionWindow::calculixEnd( int exitCode, QProcess::ExitStatus /*exitStatus*/ )
+void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*/ )
 {
     double someValue = 0;
+    someValue = calculateMaxTension();
 
     if ( exitCode )
         goto label_end;
-
-    someValue = calculateMaxTension();
 
     tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
                                                                                       someValue ) ); // Set the Von Mises
@@ -565,14 +535,14 @@ void ExtensionWindow::on_calculateButton_clicked()
     tableWidget->setProperty( "tmpCurrentVariantId", currentVariantId );
     // before starting solving, first need to apply variant
     on_applyButton_clicked();
-    emit startTetgen();
+    emit startSolve();
 }
 void ExtensionWindow::solveStart( )
 {
     if ( currentVariantId != m_currentIndex || currentVariantId == -1 )
         on_applyButton_clicked();
 
-    emit startTetgen( );
+    emit startSolve( );
 }
 
 void ExtensionWindow::on_paraviewButton_clicked()

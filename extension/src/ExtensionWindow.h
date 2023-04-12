@@ -47,10 +47,8 @@ private:
     int GetColumnId( const QString& name );
     QString GenerateVariantName();
 private:
-    void startTetgen();
-    void tetgentEnd(int exitCode, QProcess::ExitStatus);
-    void startCalculix();
-    void calculixEnd(int exitCode, QProcess::ExitStatus);
+    void startSolve();
+    void solveEnd(int exitCode, QProcess::ExitStatus);
     void solveStart();
     void on_solve_stop( int type, int error, ... );
 
