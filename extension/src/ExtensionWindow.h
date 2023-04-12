@@ -6,8 +6,8 @@
 #define MaxRecentFiles 5
 
 //#define ERROR_TYPE_EMPTY 0
-#define ERROR_TYPE_TETGEN 1
-#define ERROR_TYPE_SAVESTL 2
+#define ERROR_TYPE_TETGEN 2
+#define ERROR_TYPE_SAVESTL 3
 
 class BaseExtension;
 
@@ -65,6 +65,7 @@ private:
     BaseExtension* m_extension;
     QProcess* m_currentProcess;
     QModelIndexList m_rowsToBeProceed;
+    QList<int> calculatedVariants;
 private:
     int currentVariantId;
     int m_currentIndex;

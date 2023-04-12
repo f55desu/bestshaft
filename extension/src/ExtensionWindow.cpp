@@ -27,6 +27,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     tableWidget->sortByColumn( tableWidget->columnCount() - 1, Qt::DescendingOrder );
 
     currentVariantId = 0;
+    tableWidget->setProperty("alreadyCalculated", false);
     on_addButton_clicked();
     boldRow( currentVariantId, tableWidget ); // by default first row is applied
     tableWidget->selectRow( 0 ); // by default select the first row
@@ -364,8 +365,9 @@ void ExtensionWindow::startTetgen()
 
     double returned_max_facet_size = -1;
     QString returned_file_path = "";
+    QString variantName = tableWidget->item( m_currentIndex, 0 )->text();
 
-    int error_code = m_extension->SaveSTL( tableWidget->item( m_currentIndex, 0 )->text(), returned_file_path,
+    int error_code = m_extension->SaveSTL( variantName, returned_file_path,
                                            returned_max_facet_size );
 
     if ( error_code /*|| returned_max_facet_size < 0 || returned_file_path == ""*/ )
@@ -376,7 +378,8 @@ void ExtensionWindow::startTetgen()
     }
 
     QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
-    QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
+    QString run_script_path = bestshaft_home_path + QDir::separator() + "runSolving.bat";
+    QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" + QDir::separator() + variantName;
 
     m_currentProcess = new QProcess();
     connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::tetgentEnd );
@@ -384,8 +387,8 @@ void ExtensionWindow::startTetgen()
     m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
     // cmd.exe process did not terminate itself after executing
     //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
-    m_currentProcess->start( tetgen_path,
-                             QStringList() << QString( "-ka%1" ).arg( returned_max_facet_size ) << returned_file_path );
+    m_currentProcess->start( run_script_path,
+                             QStringList() << bestshaft_workspace_variant_path << bestshaft_home_path << QString( "%1" ).arg( returned_max_facet_size ));
 
     // TODO: Bind with tetgen and calculix processes
 //    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::startCalculix );
@@ -440,7 +443,9 @@ void ExtensionWindow::calculixEnd( int exitCode, QProcess::ExitStatus /*exitStat
 
     tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
                                                                                       someValue ) ); // Set the Von Mises
-
+    // Disable further calculation
+    if (!calculatedVariants.contains(currentVariantId))
+        calculatedVariants.append(currentVariantId);
     //disable and unselect all cells in m_currentIndex row
     for ( int col = 0; col < tableWidget->columnCount(); col++ )
     {
@@ -650,8 +655,18 @@ void ExtensionWindow::onMultiplySelection()
 
     // Can't open in ParaView zero variants
     paraviewButton->setEnabled( selectedRows.count() >= 1 );
-    // Can't calculate zero variants
-    calculateButton->setEnabled( selectedRows.count() >= 1 );
+    // Can't calculate zero variants and already calculated
+
+    for (const int var : calculatedVariants)
+    {
+        if (selectedRows.contains(var))
+        {
+            tableWidget->setProperty("alreadyCalculated", true);
+            break;
+        }
+    }
+    calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property("alreadyCalculated").toBool());
+    tableWidget->setProperty("alreadyCalculated", false);
     // Can't delete zero variants and can't delete applied variant
     deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains( currentVariantId ) );
     // Can't copy multiply variants
