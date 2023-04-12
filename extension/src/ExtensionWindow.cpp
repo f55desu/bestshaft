@@ -16,6 +16,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
 
     connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
     connect( tableWidget, &QTableWidget::cellChanged, this, &ExtensionWindow::on_cellChanged );
+    connect( tableWidget, &QTableWidget::cellEntered, this, &ExtensionWindow::on_cellEntered );
     calculateButton->setToolTip( "Calculate selected variant(s) Von Mises" );
     deleteButton->setToolTip( "Delete selected variant(s)" );
     applyButton->setToolTip( "Apply selected variant to the current model" );
@@ -28,7 +29,6 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     currentVariantId = 0;
     on_addButton_clicked();
     boldRow( currentVariantId, tableWidget ); // by default first row is applied
-    tableWidget->setProperty( "changedRowId", -1 ); // set a property that nothing is changed yet
     tableWidget->selectRow( 0 ); // by default select the first row
 }
 
@@ -127,8 +127,11 @@ label_start:
 
 void ExtensionWindow::on_cellChanged( int row, int column )
 {
-    tableWidget->setProperty( "changedRowId", row );
-    onMultiplySelection();
+    if (tableWidget->property("tmpEnteredCellValue").toString() != tableWidget->item(row, column)->text())
+    {
+        applyButton->setEnabled(true);
+        tableWidget->setProperty("tmpEnteredCellValue", -1);
+    }
 
     if ( column != 0 )
         return;
@@ -148,6 +151,14 @@ void ExtensionWindow::on_cellChanged( int row, int column )
             tableWidget->item( row, 0 )->setText( GenerateVariantName() );
             break;
         }
+}
+
+void ExtensionWindow::on_cellEntered (int row, int column)
+{
+    if (row != currentVariantId)
+        return;
+    if (row == currentVariantId)
+        tableWidget->setProperty("tmpEnteredCellValue", tableWidget->item(row, column)->text());
 }
 
 void ExtensionWindow::on_addButton_clicked()
@@ -332,7 +343,6 @@ void ExtensionWindow::on_applyButton_clicked()
 
     currentVariantId = selectedRowId;
     boldRow( currentVariantId, tableWidget );
-    tableWidget->setProperty( "changedRowId", -1 );
 
     for ( int i = 1; i < tableWidget->columnCount() - 1; i++ )
     {
@@ -344,7 +354,6 @@ void ExtensionWindow::on_applyButton_clicked()
     m_extension->ApplyVariant( variant );
 
     onMultiplySelection();
-    applyButton->setEnabled( true );
     QApplication::restoreOverrideCursor();
 }
 
@@ -648,9 +657,7 @@ void ExtensionWindow::onMultiplySelection()
     // Can't copy multiply variants
     addButton->setEnabled( selectedRows.count() == 1 );
     // Can't apply multiply variants
-    int i = tableWidget->property( "changedRowId" ).toInt();
-    applyButton->setEnabled( ( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) ) ||
-                             ( selectedRows.contains( tableWidget->property( "changedRowId" ).toInt() ) && selectedRows.count() == 1 ) );
+    applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) );
 }
 
 double ExtensionWindow::calculateMaxTension()

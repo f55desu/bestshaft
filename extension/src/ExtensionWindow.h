@@ -38,7 +38,7 @@ private slots:
 
     void onMultiplySelection();
     void on_cellChanged( int row, int column );
-
+    void on_cellEntered(int row, int column);
 protected:
     double calculateMaxTension();
 private:
