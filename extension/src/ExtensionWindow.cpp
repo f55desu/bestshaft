@@ -424,10 +424,17 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
                                                                                col )->flags() & ~Qt::ItemIsEditable );
     }
 
-    if ( m_rowsToBeProceed.cbegin()->isValid() )
+    // Deselect current row
+    for (int column = 0; column < tableWidget->columnCount(); column++)
+    {
+        QModelIndex index = tableWidget->selectionModel()->model()->index(m_currentIndex, column);
+        tableWidget->selectionModel()->select(index, QItemSelectionModel::Deselect);
+    }
+    m_rowsToBeProceed = tableWidget->selectionModel()->selectedRows();
+
+    if ( !m_rowsToBeProceed.empty() )
     {
         m_currentIndex = m_rowsToBeProceed.cbegin()->row();
-        m_rowsToBeProceed.erase( m_rowsToBeProceed.cbegin() );
         emit solveStart( );
         return;
     }
@@ -456,20 +463,10 @@ void ExtensionWindow::on_solve_stop( int type, int error, ... )
         }
     }
 
-    //BaseExtension::m_logger.error(QString("Tetgen return %1 error code").arg(error));
-    //
-    //messagebox tetgen->error()
-    //else
-    //
-    //        int colCount = tableWidget->columnCount();
-    //        int selectedRow = selectedRows[i].row();
-    //        QTableWidgetItem* selectedItem;
-    //        selectedItem = new QTableWidgetItem( QString::number( someValue ) );
-
-    //        tableWidget->setItem( selectedRow, colCount - 1, selectedItem ); // Set the Von Misses Col
-
     // return all to the begining state
     calculateButton->setText( calculateButton->property( "tmpName" ).toString() );
+    disconnect(calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked);
+    connect(calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked);
     tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
     on_applyButton_clicked();
     // activate interface
@@ -478,6 +475,7 @@ void ExtensionWindow::on_solve_stop( int type, int error, ... )
     addButton->setEnabled( true );
     applyButton->setEnabled( true );
     tableWidget->setEnabled( true );
+    QApplication::processEvents();
 }
 
 void ExtensionWindow::on_cancelButton_clicked()
@@ -529,7 +527,6 @@ void ExtensionWindow::on_calculateButton_clicked()
     m_rowsToBeProceed = tableWidget->selectionModel()->selectedRows();
 
     m_currentIndex = m_rowsToBeProceed.cbegin()->row();
-    m_rowsToBeProceed.erase( m_rowsToBeProceed.cbegin() );
 
     // save constant current variant
     tableWidget->setProperty( "tmpCurrentVariantId", currentVariantId );
