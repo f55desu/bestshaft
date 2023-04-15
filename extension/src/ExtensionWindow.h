@@ -6,8 +6,8 @@
 #define MaxRecentFiles 5
 
 //#define ERROR_TYPE_EMPTY 0
-#define ERROR_TYPE_TETGEN 1
-#define ERROR_TYPE_SAVESTL 2
+#define ERROR_TYPE_TETGEN 2
+#define ERROR_TYPE_SAVESTL 3
 
 class BaseExtension;
 
@@ -35,11 +35,10 @@ private slots:
     void on_paraviewButton_clicked();
     void on_deleteButton_clicked();
     void on_cancelButton_clicked();
-    void solveEnd( int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit );
 
     void onMultiplySelection();
     void on_cellChanged( int row, int column );
-
+    void on_cellEntered(int row, int column);
 protected:
     double calculateMaxTension();
 private:
@@ -48,8 +47,9 @@ private:
     int GetColumnId( const QString& name );
     QString GenerateVariantName();
 private:
-    void startTetgen( int selectedItemId );
-    void startCalculix( int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit );
+    void startSolve();
+    void solveEnd(int exitCode, QProcess::ExitStatus);
+    void solveStart();
     void on_solve_stop( int type, int error, ... );
 
 //private:
@@ -62,9 +62,11 @@ protected:
 private:
     BaseExtension* m_extension;
     QProcess* m_currentProcess;
-    QString m_tmpName;
+    QModelIndexList m_rowsToBeProceed;
+    QList<int> calculatedVariants;
 private:
     int currentVariantId;
+    int m_currentIndex;
 private:
     QTranslator m_qtranslator;
 //private:

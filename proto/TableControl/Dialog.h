@@ -20,8 +20,10 @@ private slots:
     void on_solveButton_clicked();
     void on_cancelButton_clicked();
     void solveEnd(int exitCode, QProcess::ExitStatus exitStatus = QProcess::NormalExit);
+    void onMultiplySelection();
 private:
     QProcess* m_currentProcess;
+    QList<int> calculatedVariants;
     QString m_tmpName;
     void on_solve_stop(int error...);
     void startTetgen(int selectedItemId);

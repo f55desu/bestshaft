@@ -16,3 +16,4 @@ proto/build
 old/
 
 external/CalculiX/
+external/tetgen/
