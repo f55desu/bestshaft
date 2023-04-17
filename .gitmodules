@@ -1,6 +1,3 @@
 [submodule "external/tetgen"]
     path = external/tetgen
     url = https://github.com/libigl/tetgen
-[submodule "external/CalculiX"]
-	path = external/CalculiX
-	url = https://github.com/GeneralElectric/CalculiX
