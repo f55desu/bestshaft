@@ -45,9 +45,13 @@ private:
 public:
     enum BoundaryMarker
     {
-        DEFAULT,
-        CONSTRAINT,
-        FORCE
+        DEFAULT,                // грань без атрибутов
+        CONSTRAINT,             // закрепления (нижняя горизонтальная грань)
+        FORCE,                  // нагрузки (верхняя горизонтальная грань)
+        MORE_DETAILED,          // более мелкая сетка в районе перехода эксцентрикового вала
+        INTERMEDIATE_TOP,       // верхняя боковая грань
+        INTERMEDIATE_MIDDLE,    // центральная горизонтальная грань
+        INTERMEDIATE_BOTTOM     // нижняя боковая грань
     };
 
 protected:
@@ -94,6 +98,14 @@ protected:
                 obj = BoundaryMarker::CONSTRAINT;
             else if ( value == 2 )
                 obj = BoundaryMarker::FORCE;
+            else if ( value == 3 )
+                obj = BoundaryMarker::MORE_DETAILED;
+            else if ( value == 4 )
+                obj = BoundaryMarker::INTERMEDIATE_TOP;
+            else if ( value == 5 )
+                obj = BoundaryMarker::INTERMEDIATE_MIDDLE;
+            else if ( value == 6 )
+                obj = BoundaryMarker::INTERMEDIATE_BOTTOM;
             else
                 throw std::invalid_argument( "Invalid value for BoundaryMarker" );
         }
@@ -208,15 +220,43 @@ protected:
 
     };
 
-    int SaveSTL( const QString& variant_name, QString& returned_file_path, double& returned_max_facet_size );
-    void writePolyFile( std::string fileName, std::set<TetgenPoint3D>& points, std::set<TetgenFacet>& facets );
-    void SaveAbaqusInputFile( const QString& tetgen_output_nodes_file_path,
-                              const QString& tetgen_output_faces_file_path,
-                              const QString& tetgen_output_tetrahedrons_file_path,
-                              const QString& calculix_input_file_path,
-                              const QString& variant_name,
-                              const double& applied_force );
-//    void writeSTL( const std::vector<double>& vertices, const std::string& filename );
+    void WriteWavefrontObjFile( const QString& fileName,
+                                const std::set<TetgenPoint3D>& points,
+                                const std::vector<TetgenFacet>& facets );
+
+    void WriteStlFile( const QString& fileName,
+                       const std::vector<TetgenFacet>& facets );
+
+    void WritePolyFile( const QString& fileName,
+                        const std::set<TetgenPoint3D>& points,
+                        const std::vector<TetgenFacet>& facets );
+
+    void WriteSmeshFile( const QString& fileName,
+                         const std::set<TetgenPoint3D>& points,
+                         const std::vector<TetgenFacet>& facets );
+
+    void WriteMtrFile( const QString& fileName,
+                       const std::set<TetgenPoint3D>& points,
+                       const double& bounding_box_diagonal_size );
+
+    void GetMeshData( std::set<TetgenPoint3D>& mesh_points,
+                      std::vector<TetgenFacet>& mesh_facets,
+                      double& mesh_bounding_box_diagonal_size,
+                      double& mesh_max_facet_size );
+
+    void SaveMeshDatabase( const QString& wavefront_obj_file_path,
+                           const QString& stl_file_path,
+                           const QString& tetgen_input_poly_file_path,
+                           const QString& tetgen_input_smesh_file_path,
+                           const QString& tetgen_input_mtr_file_path,
+                           double& max_facet_size );
+
+    void WriteAbaqusInputFile( const QString& tetgen_output_nodes_file_path,
+                               const QString& tetgen_output_faces_file_path,
+                               const QString& tetgen_output_tetrahedrons_file_path,
+                               const QString& calculix_input_file_path,
+                               const QString& variant_name,
+                               const double& applied_force );
 
 //public slots:
 //    void CheckContextIsValid();
