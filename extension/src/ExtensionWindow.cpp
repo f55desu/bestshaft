@@ -16,6 +16,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
 
     connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
     connect( tableWidget, &QTableWidget::cellChanged, this, &ExtensionWindow::on_cellChanged );
+    connect( tableWidget, &QTableWidget::cellEntered, this, &ExtensionWindow::on_cellEntered );
     calculateButton->setToolTip( "Calculate selected variant(s) Von Mises" );
     deleteButton->setToolTip( "Delete selected variant(s)" );
     applyButton->setToolTip( "Apply selected variant to the current model" );
@@ -26,8 +27,10 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     tableWidget->sortByColumn( tableWidget->columnCount() - 1, Qt::DescendingOrder );
 
     currentVariantId = 0;
+    tableWidget->setProperty("alreadyCalculated", false);
     on_addButton_clicked();
-    boldRow( currentVariantId, tableWidget );
+    boldRow( currentVariantId, tableWidget ); // by default first row is applied
+    tableWidget->selectRow( 0 ); // by default select the first row
 }
 
 ExtensionWindow::~ExtensionWindow()
@@ -125,6 +128,12 @@ label_start:
 
 void ExtensionWindow::on_cellChanged( int row, int column )
 {
+    if (tableWidget->property("tmpEnteredCellValue").toString() != tableWidget->item(row, column)->text())
+    {
+        applyButton->setEnabled(true);
+        tableWidget->setProperty("tmpEnteredCellValue", -1);
+    }
+
     if ( column != 0 )
         return;
 
@@ -143,6 +152,14 @@ void ExtensionWindow::on_cellChanged( int row, int column )
             tableWidget->item( row, 0 )->setText( GenerateVariantName() );
             break;
         }
+}
+
+void ExtensionWindow::on_cellEntered (int row, int column)
+{
+    if (row != currentVariantId)
+        return;
+    if (row == currentVariantId)
+        tableWidget->setProperty("tmpEnteredCellValue", tableWidget->item(row, column)->text());
 }
 
 void ExtensionWindow::on_addButton_clicked()
@@ -245,7 +262,7 @@ void ExtensionWindow::on_addButton_clicked()
 
 void ExtensionWindow::initilizeVariant()
 {
-    QApplication::setOverrideCursor( Qt::BusyCursor );
+    QApplication::setOverrideCursor( Qt::WaitCursor );
 
     BaseExtension::Variant variant = m_extension->ExtractVariant();
     m_extension->variants.append( variant );
@@ -313,7 +330,7 @@ void ExtensionWindow::initilizeVariant()
 
 void ExtensionWindow::on_applyButton_clicked()
 {
-    QApplication::setOverrideCursor( Qt::BusyCursor );
+    QApplication::setOverrideCursor( Qt::WaitCursor );
     applyButton->setEnabled( false );
     QApplication::processEvents();
 
@@ -338,33 +355,38 @@ void ExtensionWindow::on_applyButton_clicked()
     m_extension->ApplyVariant( variant );
 
     onMultiplySelection();
-    applyButton->setEnabled( true );
     QApplication::restoreOverrideCursor();
 }
 
-void ExtensionWindow::startTetgen( int selectedItemId )
+void ExtensionWindow::startSolve()
 {
     const QString default_mesh_file_name = "model.tri.mesh";
     const QString default_calculix_input_file_name = "ccx.input";
 
-    const QString home_path = QDir::homePath();
-    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
-    const QString variant_name = tableWidget->item( selectedItemId, 0 )->text();
+    double returned_max_facet_size = -1;
+    QString returned_file_path = "";
+    QString variantName = tableWidget->item( m_currentIndex, 0 )->text();
 
-    try
+    int error_code = m_extension->SaveSTL( variantName, returned_file_path,
+                                           returned_max_facet_size );
+
+    if ( error_code /*|| returned_max_facet_size < 0 || returned_file_path == ""*/ )
     {
         // create workspace and variant folder if not exist
         QDir home_dir( home_path );
 
-        // folder not exists
-        if ( !home_dir.exists( bestshaft_workspace_folder_name ) )
-        {
-            // failed to create folder
-            if ( !home_dir.mkdir( bestshaft_workspace_folder_name ) )
-                throw std::exception( ( "Cannot create folder: " + bestshaft_workspace_folder_name.toStdString() ).c_str() );
+    QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
+    QString run_script_path = bestshaft_home_path + QDir::separator() + "runSolving.bat";
+    QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" + QDir::separator() + variantName;
 
-            // folder created successfuly
-        }
+    m_currentProcess = new QProcess();
+    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
+
+    m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
+    // cmd.exe process did not terminate itself after executing
+    //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
+    m_currentProcess->start( run_script_path,
+                             QStringList() << bestshaft_workspace_variant_path << bestshaft_home_path << QString( "%1" ).arg( returned_max_facet_size ));
 
         // folder exists
         QString bestshaft_workspace_path = home_path + QDir::separator() + bestshaft_workspace_folder_name;
@@ -439,32 +461,49 @@ void ExtensionWindow::startTetgen( int selectedItemId )
     }
 
     if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
-        emit on_solve_stop( m_currentProcess->error() );
+        emit on_solve_stop( ERROR_TYPE_TETGEN, m_currentProcess->error() );
+
+    QApplication::restoreOverrideCursor();
 }
 
-void ExtensionWindow::startCalculix( int exitCode, QProcess::ExitStatus exitStatus )
+void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*/ )
 {
-    // TODO: Bind with tetgen and calculix processes
-//    if (exitCode)
-//       emit on_solve_stop(exitCode,exitStatus)
-//    log m_currentProcess.readAll();
-//    m_currentProcess = new QProcess( parent() );
-//    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-//    m_currentProcess->startDetached( m_extension->GetPluginBinDir() + QDir::separator() + "calculix.exe",
-//                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
-//                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
-//                                     + QDir::separator() + "mesh.stl" );
+    double someValue = 0;
+    someValue = calculateMaxTension();
 
-//    if ( !m_currentProcess->waitForStarted() )
-//        emit on_solve_stop( m_currentProcess->error(), ... );
-}
+    if ( exitCode )
+        goto label_end;
 
-void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus exitStatus )
-{
-    double someValue = calculateMaxTension();
+    tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
+                                                                                      someValue ) ); // Set the Von Mises
+    // Disable further calculation
+    if (!calculatedVariants.contains(currentVariantId))
+        calculatedVariants.append(currentVariantId);
+    //disable and unselect all cells in m_currentIndex row
+    for ( int col = 0; col < tableWidget->columnCount(); col++ )
+    {
+        tableWidget->item( m_currentIndex, col )->setSelected( false );
+        tableWidget->item( m_currentIndex, col )->setFlags( tableWidget->item( m_currentIndex,
+                                                                               col )->flags() & ~Qt::ItemIsEditable );
+    }
 
-    tableWidget->item( currentVariantId, tableWidget->columnCount() - 1 )->setText( QString::number( someValue ) );
-    emit on_solve_stop( exitCode/*no error*/ );
+    // Deselect current row
+    for (int column = 0; column < tableWidget->columnCount(); column++)
+    {
+        QModelIndex index = tableWidget->selectionModel()->model()->index(m_currentIndex, column);
+        tableWidget->selectionModel()->select(index, QItemSelectionModel::Deselect);
+    }
+    m_rowsToBeProceed = tableWidget->selectionModel()->selectedRows();
+
+    if ( !m_rowsToBeProceed.empty() )
+    {
+        m_currentIndex = m_rowsToBeProceed.cbegin()->row();
+        emit solveStart( );
+        return;
+    }
+
+label_end:
+    emit on_solve_stop( 0, exitCode/*no error*/ );
 }
 
 void ExtensionWindow::on_solve_stop( int error, ... )
@@ -472,26 +511,19 @@ void ExtensionWindow::on_solve_stop( int error, ... )
     if ( error )
         qDebug() << QString( "Something error: %1" ).arg( error );
 
-    //BaseExtension::m_logger.error(QString("Tetgen return %1 error code").arg(error));
-    //
-    //messagebox tetgen->error()
-    //else
-    //
-    //        int colCount = tableWidget->columnCount();
-    //        int selectedRow = selectedRows[i].row();
-    //        QTableWidgetItem* selectedItem;
-    //        selectedItem = new QTableWidgetItem( QString::number( someValue ) );
-
-    //        tableWidget->setItem( selectedRow, colCount - 1, selectedItem ); // Set the Von Misses Col
-
-    calculateButton->setText( m_tmpName );
-    QApplication::restoreOverrideCursor();
+    // return all to the begining state
+    calculateButton->setText( calculateButton->property( "tmpName" ).toString() );
+    disconnect(calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked);
+    connect(calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked);
+    tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
+    on_applyButton_clicked();
     // activate interface
     paraviewButton->setEnabled( true );
     deleteButton->setEnabled( true );
     addButton->setEnabled( true );
     applyButton->setEnabled( true );
     tableWidget->setEnabled( true );
+    QApplication::processEvents();
 }
 
 void ExtensionWindow::on_cancelButton_clicked()
@@ -500,10 +532,19 @@ void ExtensionWindow::on_cancelButton_clicked()
         m_currentProcess->kill();
 
     QPushButton* button = ( QPushButton* )sender();
-    button->setText( m_tmpName );
+    button->setText( button->property( "tmpName" ).toString() );
     button->disconnect();
     connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked );
     QApplication::restoreOverrideCursor();
+
+    // restore applied variant
+    if ( currentVariantId != tableWidget->property( "tmpCurrentVariantId" ).toInt() )
+    {
+        tableWidget->selectionModel()->clearSelection();
+        tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
+        on_applyButton_clicked();
+    }
+
     // activate interface
     paraviewButton->setEnabled( true );
     deleteButton->setEnabled( true );
@@ -514,10 +555,10 @@ void ExtensionWindow::on_cancelButton_clicked()
 
 void ExtensionWindow::on_calculateButton_clicked()
 {
-    QApplication::setOverrideCursor( Qt::BusyCursor );
+    QApplication::setOverrideCursor( Qt::WaitCursor );
     //deactivate all interface
     QPushButton* button = ( QPushButton* )sender();
-    m_tmpName = button->text();
+    button->setProperty( "tmpName", button->text() );
     button->setText( tr( "&Cancel" ) );
     button->disconnect();
     connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked );
@@ -531,20 +572,27 @@ void ExtensionWindow::on_calculateButton_clicked()
 
     QApplication::processEvents();
 
-    auto selectedRows = tableWidget->selectionModel()->selectedRows();
+    m_rowsToBeProceed = tableWidget->selectionModel()->selectedRows();
 
-    for ( int i = 0; i < selectedRows.count(); i++ )
-    {
-        if ( currentVariantId != selectedRows[i].row() )
-            on_applyButton_clicked();
+    m_currentIndex = m_rowsToBeProceed.cbegin()->row();
 
-        emit startTetgen( selectedRows[i].row() );
-    }
+    // save constant current variant
+    tableWidget->setProperty( "tmpCurrentVariantId", currentVariantId );
+    // before starting solving, first need to apply variant
+    on_applyButton_clicked();
+    emit startSolve();
+}
+void ExtensionWindow::solveStart( )
+{
+    if ( currentVariantId != m_currentIndex || currentVariantId == -1 )
+        on_applyButton_clicked();
+
+    emit startSolve( );
 }
 
 void ExtensionWindow::on_paraviewButton_clicked()
 {
-    QApplication::setOverrideCursor( Qt::BusyCursor );
+    QApplication::setOverrideCursor( Qt::WaitCursor );
 
     auto selectedRows = tableWidget->selectionModel()->selectedRows();
 
@@ -622,8 +670,18 @@ void ExtensionWindow::onMultiplySelection()
 
     // Can't open in ParaView zero variants
     paraviewButton->setEnabled( selectedRows.count() >= 1 );
-    // Can't calculate zero variants
-    calculateButton->setEnabled( selectedRows.count() >= 1 );
+    // Can't calculate zero variants and already calculated
+
+    for (const int var : calculatedVariants)
+    {
+        if (selectedRows.contains(var))
+        {
+            tableWidget->setProperty("alreadyCalculated", true);
+            break;
+        }
+    }
+    calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property("alreadyCalculated").toBool());
+    tableWidget->setProperty("alreadyCalculated", false);
     // Can't delete zero variants and can't delete applied variant
     deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains( currentVariantId ) );
     // Can't copy multiply variants

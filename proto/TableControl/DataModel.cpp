@@ -20,18 +20,19 @@ int DataModel::columnCount(const QModelIndex & /* parent */) const
 }
 QVariant DataModel::data(const QModelIndex &index, int role) const
 {
-    if (!(index.isValid() && (role == Qt::DisplayRole || role == Qt::EditRole)))
-        return QVariant();
+//    if (!(index.isValid() && (role == Qt::DisplayRole || role == Qt::EditRole)))
+//        return QVariant();
 
-    if(index.column() == 0)
-        return QString::fromStdString(std::next(m_variants.begin(), index.row())->first);
+//    if(index.column() == 0)
+//        return QString::fromStdString(std::next(m_variants.begin(), index.row())->first);
 
-    std::string label = *std::next(m_paramLabels.begin(), index.column() - 1);
-    Params params = std::next(m_variants.begin(), index.row())->second;
-    return params.contains(label) ?
-                ((label == "VonMises" && params.at(label) == .0) ?
-                     "--" : QString::number(params.at(label)))
-              : "--";
+//    std::string label = *std::next(m_paramLabels.begin(), index.column() - 1);
+//    Params params = std::next(m_variants.begin(), index.row())->second;
+//    return params.contains(label) ?
+//                ((label == "VonMises" && params.at(label) == .0) ?
+//                     "--" : QString::number(params.at(label)))
+//              : "--";
+    return QVariant();
 }
 QVariant DataModel::headerData(int section,
                                 Qt::Orientation orientation,
@@ -56,16 +57,16 @@ Qt::ItemFlags DataModel::flags(const QModelIndex& index) const
 {
     Qt::ItemFlags flags = QAbstractItemModel::flags(index);
 
-    if (index.column() == 0)
-        return flags | Qt::ItemIsEditable;
+//    if (index.column() == 0)
+//        return flags | Qt::ItemIsEditable;
 
-    if (index.column() != (int)m_paramLabels.size())
-    {
-        std::string label = *std::next(m_paramLabels.begin(), index.column() - 1);
-        Params params = std::next(m_variants.begin(), index.row())->second;
+//    if (index.column() != (int)m_paramLabels.size())
+//    {
+//        std::string label = *std::next(m_paramLabels.begin(), index.column() - 1);
+//        Params params = std::next(m_variants.begin(), index.row())->second;
 
-        return params.contains(label) ? flags | Qt::ItemIsEditable : flags;
-    }
+//        return params.contains(label) ? flags | Qt::ItemIsEditable : flags;
+//    }
 
     return flags;
 }
@@ -127,8 +128,8 @@ std::string DataModel::GetVariantUniqueName(const std::string& start_string) con
 {
     std::string unique_name = start_string;
 
-    for(int n = 1; m_variants.find(unique_name = unique_name.empty() ?
-        std::format("Variant #{}",n) : unique_name ) != m_variants.end(); n++, unique_name.clear());
+//    for(int n = 1; m_variants.find(unique_name = unique_name.empty() ?
+//        std::format("Variant #{}",n) : unique_name ) != m_variants.end(); n++, unique_name.clear());
 
     return unique_name;
 }
@@ -143,7 +144,7 @@ void DataModel::AddVariant(const Params& params)
     insertRows(rowCount(), 1, QModelIndex());*/
 
     beginInsertColumns(QModelIndex(),0,(int)params.size());
-    std::ranges::for_each(params, [this](const auto& a){ m_paramLabels.insert(a.first); });
+    //std::ranges::for_each(params, [this](const auto& a){ m_paramLabels.insert(a.first); });
     endInsertColumns();
     //insertColumns(0, m_paramLabels.size(), QModelIndex());
     return;

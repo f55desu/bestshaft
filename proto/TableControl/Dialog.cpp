@@ -10,10 +10,12 @@ Dialog::Dialog(QWidget *parent)
 
 //    std::generate(m_model.begin(), m_model.end(),
 //                  [n = 1] () mutable { n++; return std::pair(std::format("Variant #{}",n),static_cast<double>(n));} );
-
+    tableWidget->setSelectionBehavior( QAbstractItemView::SelectRows );
     m_tableModel = new DataModel(this);
     tableView->setModel(m_tableModel);
 
+    tableWidget->setProperty("alreadyCalculated", false);
+    connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
 //    m_tableModel->AddVariant(DataModel::Params{std::pair("Par1",0.111),std::pair("VonMises",.0)});
 //    m_tableModel->AddVariant(DataModel::Params{std::pair("Par1",0.111),std::pair("Par2",0.222),std::pair("VonMises",.0)});
 //    m_tableModel->AddVariant(DataModel::Params{std::pair("Par2",0.222),std::pair("VonMises",.0)});
@@ -124,6 +126,10 @@ void Dialog::solveEnd( int exitCode, QProcess::ExitStatus exitStatus)
     double someValue = static_cast<double>( rand() ) / RAND_MAX;
 
     tableWidget->item(0, 0)->setText(QString::number(someValue));
+    // Disable further calculation
+    if (!calculatedVariants.contains(0))
+        calculatedVariants.append(0);
+
     emit on_solve_stop( exitCode/*no error*/ );
     disconnect( solveButton, SIGNAL(&QPushButton::clicked), this, SLOT(&Dialog::on_cancelButton_clicked) );
     connect( solveButton, SIGNAL(&QPushButton::clicked), this, SLOT(&Dialog::on_solveButton_clicked) );
@@ -167,6 +173,31 @@ void Dialog::on_solveButton_clicked()
     QApplication::processEvents();
 
     emit startTetgen( 0 );
+}
+void Dialog::onMultiplySelection()
+{
+    // Get the selected ranges
+    QList<QTableWidgetSelectionRange> ranges = tableWidget->selectedRanges();
+
+    // Count the unique rows within the selected ranges
+    QSet<int> selectedRows;
+
+    foreach ( QTableWidgetSelectionRange range, ranges )
+    {
+        for ( int row = range.topRow(); row <= range.bottomRow(); ++row )
+            selectedRows.insert( row );
+    }
+
+    for (const int var : calculatedVariants)
+    {
+        if (selectedRows.contains(var))
+        {
+            tableWidget->setProperty("alreadyCalculated", true);
+            break;
+        }
+    }
+    solveButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property("alreadyCalculated").toBool());
+    tableWidget->setProperty("alreadyCalculated", false);
 }
 
 void Dialog::on_pushButton_2_clicked()
