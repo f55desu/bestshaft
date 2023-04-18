@@ -118,12 +118,6 @@ protected:
 
             return in;
         }
-
-//        friend std::ostream& operator<<( std::ostream& out, const TetgenPoint3D& obj )
-//        {
-//            out << obj.point.x << " " << obj.point.y << " " << obj.point.z;
-//            return out;
-//        }
     };
 
     struct TetgenFacet
@@ -157,69 +151,6 @@ protected:
         }
     };
 
-    struct Facet
-    {
-        int _p1_id,
-            _p2_id,
-            _p3_id;
-
-        double facet_area;
-
-        Facet() {}    // default
-        Facet( int p1_id, int p2_id, int p3_id ):
-            _p1_id( p1_id ), _p2_id( p2_id ), _p3_id( p3_id ), facet_area( 0.0 )
-        {}
-
-        Facet& operator=( const Facet& other )
-        {
-            _p1_id = other._p1_id;
-            _p2_id = other._p2_id;
-            _p3_id = other._p3_id;
-
-            return *this;
-        }
-
-        // Define operator< for TetgenFacet to use in set
-        bool operator<( const Facet& other ) const
-        {
-            if ( _p1_id != other._p1_id )
-                return _p1_id < other._p1_id;
-            else if ( _p2_id != other._p2_id )
-                return _p2_id < other._p2_id;
-            else
-                return _p3_id < other._p3_id;
-        }
-    };
-
-    struct Tetrahedron
-    {
-        int p1_id,
-            p2_id,
-            p3_id,
-            p4_id;
-
-        // Define operator< for TetgenFacet to use in set
-        bool operator<( const Tetrahedron& other ) const
-        {
-            if ( p1_id != other.p1_id )
-                return p1_id < other.p1_id;
-            else if ( p2_id != other.p2_id )
-                return p2_id < other.p2_id;
-            else if ( p3_id != other.p3_id )
-                return p3_id < other.p3_id;
-            else
-                return p4_id < other.p4_id;
-        }
-
-        friend std::istream& operator>>( std::istream& in, Tetrahedron& obj )
-        {
-            int id/* ignore */;
-            in >> id >> obj.p1_id >> obj.p2_id >> obj.p3_id >> obj.p4_id;
-            return in;
-        }
-
-    };
-
     void WriteWavefrontObjFile( const QString& fileName,
                                 const std::set<TetgenPoint3D>& points,
                                 const std::vector<TetgenFacet>& facets );
@@ -250,13 +181,6 @@ protected:
                            const QString& tetgen_input_smesh_file_path,
                            const QString& tetgen_input_mtr_file_path,
                            double& max_facet_size );
-
-    void WriteAbaqusInputFile( const QString& tetgen_output_nodes_file_path,
-                               const QString& tetgen_output_faces_file_path,
-                               const QString& tetgen_output_tetrahedrons_file_path,
-                               const QString& calculix_input_file_path,
-                               const QString& variant_name,
-                               const double& applied_force );
 
 //public slots:
 //    void CheckContextIsValid();

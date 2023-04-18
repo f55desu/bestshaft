@@ -342,7 +342,6 @@ void ExtensionWindow::on_applyButton_clicked()
     QApplication::restoreOverrideCursor();
 }
 
-bool toggle = true;
 void ExtensionWindow::startTetgen( int selectedItemId )
 {
     const QString default_mesh_file_name = "model.tri.mesh";
@@ -395,69 +394,40 @@ void ExtensionWindow::startTetgen( int selectedItemId )
 
         double max_facet_size = -1;
 
-        if ( toggle )
+        // save .obj, .stl, .poly, .smesh and .mtr files
+        m_extension->SaveMeshDatabase( wavefront_file_path,
+                                       stl_file_path,
+                                       tetgen_input_poly_file_path,
+                                       tetgen_input_smesh_file_path,
+                                       tetgen_input_mtr_file_path,
+                                       max_facet_size );
+
+        const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
+        const QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
+
+        m_currentProcess = new QProcess();
+        connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
+        connect( m_currentProcess, &QProcess::errorOccurred, [ = ]( QProcess::ProcessError error )
         {
-            toggle = !toggle;
+            // TODO: Make it in logs
+            qDebug() << "error enum val = " << error;
+        } );
+        m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
+        // cmd.exe process did not terminate itself after executing
+        //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
 
-            // save .obj, .stl, .poly, .smesh and .mtr files
-            m_extension->SaveMeshDatabase( wavefront_file_path,
-                                           stl_file_path,
-                                           tetgen_input_poly_file_path,
-                                           tetgen_input_smesh_file_path,
-                                           tetgen_input_mtr_file_path,
-                                           max_facet_size );
+        m_currentProcess->setStandardOutputFile( bestshaft_workspace_path + QDir::separator() + variant_name +
+                                                 QDir::separator() + "tetgen.log" );
+        // old args: -pqmVCCkO9/7a%1
+        m_currentProcess->start( tetgen_path,
+                                 QStringList() << QString( "-pqmVCCkO9/7a%1" ).arg( max_facet_size ) << tetgen_input_smesh_file_path );
 
-            const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
-            const QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
-
-            m_currentProcess = new QProcess();
-            connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-            connect( m_currentProcess, &QProcess::errorOccurred, [ = ]( QProcess::ProcessError error )
-            {
-                // TODO: Make it in logs
-                qDebug() << "error enum val = " << error;
-            } );
-            m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
-            // cmd.exe process did not terminate itself after executing
-            //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
-
-            m_currentProcess->setStandardOutputFile( bestshaft_workspace_path + QDir::separator() + variant_name +
-                                                     QDir::separator() + "tetgen.log" );
-            // old args: -pqmVCCkO9/7a%1
-            m_currentProcess->start( tetgen_path,
-                                     QStringList() << QString( "-pqmVCCkO9/7a%1" ).arg( max_facet_size ) << tetgen_input_smesh_file_path );
-
-            // TODO: Bind with tetgen and calculix processes
+        // TODO: Bind with tetgen and calculix processes
 //    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::startCalculix );
 //    m_currentProcess->startDetached( m_extension->GetPluginBinDir() + QDir::separator() + "tetgen.exe",
 //                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
 //                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
 //                                     + QDir::separator() + "mesh.stl" );
-        }
-        else
-        {
-            toggle = !toggle;
-
-            // save abaqus input file after tetgen work
-            const QString tetgen_output_nodes_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
-                                                          QDir::separator() + default_mesh_file_name + ".1.node";
-            const QString tetgen_output_faces_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
-                                                          QDir::separator() + default_mesh_file_name + ".1.face";
-            const QString tetgen_output_tetrahedrones_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
-                                                                  QDir::separator() + default_mesh_file_name + ".1.ele";
-            const QString calculix_input_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
-                                                     QDir::separator() + default_calculix_input_file_name + ".inp";
-
-            double force_value = 1.0;
-            m_extension->WriteAbaqusInputFile( tetgen_output_nodes_file_path,
-                                               tetgen_output_faces_file_path,
-                                               tetgen_output_tetrahedrones_file_path,
-                                               calculix_input_file_path,
-                                               variant_name,
-                                               force_value );
-
-            // run calculix
-        }
     }
     catch ( const std::runtime_error& ex )
     {
@@ -469,7 +439,7 @@ void ExtensionWindow::startTetgen( int selectedItemId )
     }
 
     if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
-        emit on_solve_stop( ERROR_TYPE_TETGEN, m_currentProcess->error() );
+        emit on_solve_stop( m_currentProcess->error() );
 }
 
 void ExtensionWindow::startCalculix( int exitCode, QProcess::ExitStatus exitStatus )
@@ -494,28 +464,13 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus exitStatus )
     double someValue = calculateMaxTension();
 
     tableWidget->item( currentVariantId, tableWidget->columnCount() - 1 )->setText( QString::number( someValue ) );
-    emit on_solve_stop( 0, exitCode/*no error*/ );
+    emit on_solve_stop( exitCode/*no error*/ );
 }
 
-void ExtensionWindow::on_solve_stop( int type, int error, ... )
+void ExtensionWindow::on_solve_stop( int error, ... )
 {
     if ( error )
-    {
-        switch ( type )
-        {
-            case ERROR_TYPE_TETGEN:
-                qDebug() << QString( "Tetgen return %1 error code" ).arg( error );
-                break;
-
-            case ERROR_TYPE_SAVESTL:
-                qDebug() << QString( "SaveSTL method return %1 error code" ).arg( error );
-                break;
-
-            default:
-                qDebug() << QString( "Undefined error type: %1" ).arg( error );
-                break;
-        }
-    }
+        qDebug() << QString( "Something error: %1" ).arg( error );
 
     //BaseExtension::m_logger.error(QString("Tetgen return %1 error code").arg(error));
     //

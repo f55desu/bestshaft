@@ -80,13 +80,6 @@ protected:
                                    const QString& tetgen_input_mtr_file_path,
                                    double& max_facet_size ) = 0;
 
-    virtual void WriteAbaqusInputFile( const QString& tetgen_output_nodes_file_path,
-                                       const QString& tetgen_output_faces_file_path,
-                                       const QString& tetgen_output_tetrahedrons_file_path,
-                                       const QString& calculix_input_file_path,
-                                       const QString& variant_name,
-                                       const double& applied_force ) = 0;
-
 //protected:
 //    virtual QString Test() = 0;
 //protected:
