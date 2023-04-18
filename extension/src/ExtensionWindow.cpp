@@ -27,7 +27,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     tableWidget->sortByColumn( tableWidget->columnCount() - 1, Qt::DescendingOrder );
 
     currentVariantId = 0;
-    tableWidget->setProperty("alreadyCalculated", false);
+    tableWidget->setProperty( "alreadyCalculated", false );
     on_addButton_clicked();
     boldRow( currentVariantId, tableWidget ); // by default first row is applied
     tableWidget->selectRow( 0 ); // by default select the first row
@@ -128,10 +128,10 @@ label_start:
 
 void ExtensionWindow::on_cellChanged( int row, int column )
 {
-    if (tableWidget->property("tmpEnteredCellValue").toString() != tableWidget->item(row, column)->text())
+    if ( tableWidget->property( "tmpEnteredCellValue" ).toString() != tableWidget->item( row, column )->text() )
     {
-        applyButton->setEnabled(true);
-        tableWidget->setProperty("tmpEnteredCellValue", -1);
+        applyButton->setEnabled( true );
+        tableWidget->setProperty( "tmpEnteredCellValue", -1 );
     }
 
     if ( column != 0 )
@@ -154,12 +154,13 @@ void ExtensionWindow::on_cellChanged( int row, int column )
         }
 }
 
-void ExtensionWindow::on_cellEntered (int row, int column)
+void ExtensionWindow::on_cellEntered ( int row, int column )
 {
-    if (row != currentVariantId)
+    if ( row != currentVariantId )
         return;
-    if (row == currentVariantId)
-        tableWidget->setProperty("tmpEnteredCellValue", tableWidget->item(row, column)->text());
+
+    if ( row == currentVariantId )
+        tableWidget->setProperty( "tmpEnteredCellValue", tableWidget->item( row, column )->text() );
 }
 
 void ExtensionWindow::on_addButton_clicked()
@@ -362,9 +363,12 @@ void ExtensionWindow::startSolve()
 {
     const QString default_mesh_file_name = "model.tri.mesh";
     const QString default_calculix_input_file_name = "abaqus.ccx";
+
     const QString home_path = QDir::homePath();
     const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
-    const QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
+
+    QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
+    std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
 
     try
     {
@@ -409,12 +413,21 @@ void ExtensionWindow::startSolve()
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
         const QString run_script_path = bestshaft_home_path + QDir::separator() + "run.bat";
-        const QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" + QDir::separator() + variant_name;
+        const QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" +
+                                                         QDir::separator() + variant_name;
 
-        const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name + ".1.node";
-        const QString tetgen_face_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name + ".1.face";
-        const QString tetgen_ele_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name + ".1.ele";
-        const QString tet2inp_ccx_path = bestshaft_workspace_variant_path + QDir::separator() + default_calculix_input_file_name + ".inp";
+        const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
+                                         ".1.node";
+        const QString tetgen_face_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
+                                         ".1.face";
+        const QString tetgen_ele_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
+                                        ".1.ele";
+
+        const QString tet2inp_ccx_path = bestshaft_workspace_variant_path + QDir::separator() + default_calculix_input_file_name
+                                         + ".inp";
+
+        const QString ccx_inp_path_without_extension = bestshaft_workspace_variant_path + QDir::separator() +
+                                                       default_calculix_input_file_name;
 
         m_currentProcess = new QProcess();
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
@@ -423,16 +436,23 @@ void ExtensionWindow::startSolve()
         // cmd.exe process did not terminate itself after executing
         //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
         m_currentProcess->start( run_script_path,
-                                 QStringList() <<
-                                 bestshaft_workspace_variant_path <<
-                                 bestshaft_home_path <<
-                                 QString( "%1" ).arg( max_facet_size ) <<
-                                 tetgen_node_path <<
-                                 tetgen_face_path <<
-                                 tetgen_ele_path <<
-                                 tet2inp_ccx_path <<
-                                 variant_name
-                                 );
+                                 ( QStringList() <<
+                                   bestshaft_workspace_variant_path <<
+                                   bestshaft_home_path <<
+                                   QString( "%1" ).arg( max_facet_size ) <<
+                                   tetgen_node_path <<
+                                   tetgen_face_path <<
+                                   tetgen_ele_path <<
+                                   tet2inp_ccx_path <<
+                                   variant_name <<
+                                   ccx_inp_path_without_extension )
+                               );
+
+//        qDebug() << "run.bat: " << run_script_path << bestshaft_workspace_variant_path << bestshaft_home_path <<
+//                 QString( "%1" ).arg(
+//                     max_facet_size ) << tetgen_node_path << tetgen_face_path << tetgen_ele_path << tet2inp_ccx_path << variant_name <<
+//                 ccx_inp_path_without_extension;
+
     }
     catch ( const std::runtime_error& ex )
     {
@@ -459,9 +479,11 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
 
     tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
                                                                                       someValue ) ); // Set the Von Mises
+
     // Disable further calculation
-    if (!calculatedVariants.contains(currentVariantId))
-        calculatedVariants.append(currentVariantId);
+    if ( !calculatedVariants.contains( currentVariantId ) )
+        calculatedVariants.append( currentVariantId );
+
     //disable and unselect all cells in m_currentIndex row
     for ( int col = 0; col < tableWidget->columnCount(); col++ )
     {
@@ -471,11 +493,12 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
     }
 
     // Deselect current row
-    for (int column = 0; column < tableWidget->columnCount(); column++)
+    for ( int column = 0; column < tableWidget->columnCount(); column++ )
     {
-        QModelIndex index = tableWidget->selectionModel()->model()->index(m_currentIndex, column);
-        tableWidget->selectionModel()->select(index, QItemSelectionModel::Deselect);
+        QModelIndex index = tableWidget->selectionModel()->model()->index( m_currentIndex, column );
+        tableWidget->selectionModel()->select( index, QItemSelectionModel::Deselect );
     }
+
     m_rowsToBeProceed = tableWidget->selectionModel()->selectedRows();
 
     if ( !m_rowsToBeProceed.empty() )
@@ -489,15 +512,15 @@ label_end:
     emit on_solve_stop( exitCode/*no error*/ );
 }
 
-void ExtensionWindow::on_solve_stop( int error, ...)
+void ExtensionWindow::on_solve_stop( int error, ... )
 {
     if ( error )
         qDebug() << QString( "Something error: %1" ).arg( error );
 
     // return all to the begining state
     calculateButton->setText( calculateButton->property( "tmpName" ).toString() );
-    disconnect(calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked);
-    connect(calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked);
+    disconnect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked );
+    connect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked );
     tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
     on_applyButton_clicked();
     // activate interface
@@ -655,16 +678,17 @@ void ExtensionWindow::onMultiplySelection()
     paraviewButton->setEnabled( selectedRows.count() >= 1 );
     // Can't calculate zero variants and already calculated
 
-    for (const int var : calculatedVariants)
+    for ( const int var : calculatedVariants )
     {
-        if (selectedRows.contains(var))
+        if ( selectedRows.contains( var ) )
         {
-            tableWidget->setProperty("alreadyCalculated", true);
+            tableWidget->setProperty( "alreadyCalculated", true );
             break;
         }
     }
-    calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property("alreadyCalculated").toBool());
-    tableWidget->setProperty("alreadyCalculated", false);
+
+    calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property( "alreadyCalculated" ).toBool() );
+    tableWidget->setProperty( "alreadyCalculated", false );
     // Can't delete zero variants and can't delete applied variant
     deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains( currentVariantId ) );
     // Can't copy multiply variants
