@@ -361,32 +361,15 @@ void ExtensionWindow::on_applyButton_clicked()
 void ExtensionWindow::startSolve()
 {
     const QString default_mesh_file_name = "model.tri.mesh";
-    const QString default_calculix_input_file_name = "ccx.input";
+    const QString default_calculix_input_file_name = "abaqus.ccx";
+    const QString home_path = QDir::homePath();
+    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
+    const QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
 
-    double returned_max_facet_size = -1;
-    QString returned_file_path = "";
-    QString variantName = tableWidget->item( m_currentIndex, 0 )->text();
-
-    int error_code = m_extension->SaveSTL( variantName, returned_file_path,
-                                           returned_max_facet_size );
-
-    if ( error_code /*|| returned_max_facet_size < 0 || returned_file_path == ""*/ )
+    try
     {
         // create workspace and variant folder if not exist
         QDir home_dir( home_path );
-
-    QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
-    QString run_script_path = bestshaft_home_path + QDir::separator() + "runSolving.bat";
-    QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" + QDir::separator() + variantName;
-
-    m_currentProcess = new QProcess();
-    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-
-    m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
-    // cmd.exe process did not terminate itself after executing
-    //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
-    m_currentProcess->start( run_script_path,
-                             QStringList() << bestshaft_workspace_variant_path << bestshaft_home_path << QString( "%1" ).arg( returned_max_facet_size ));
 
         // folder exists
         QString bestshaft_workspace_path = home_path + QDir::separator() + bestshaft_workspace_folder_name;
@@ -425,31 +408,31 @@ void ExtensionWindow::startSolve()
                                        max_facet_size );
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
-        const QString tetgen_path = bestshaft_home_path + QDir::separator() + "tetgen.exe";
+        const QString run_script_path = bestshaft_home_path + QDir::separator() + "run.bat";
+        const QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" + QDir::separator() + variant_name;
+
+        const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name + ".1.node";
+        const QString tetgen_face_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name + ".1.face";
+        const QString tetgen_ele_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name + ".1.ele";
+        const QString tet2inp_ccx_path = bestshaft_workspace_variant_path + QDir::separator() + default_calculix_input_file_name + ".inp";
 
         m_currentProcess = new QProcess();
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-        connect( m_currentProcess, &QProcess::errorOccurred, [ = ]( QProcess::ProcessError error )
-        {
-            // TODO: Make it in logs
-            qDebug() << "error enum val = " << error;
-        } );
         m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
+
         // cmd.exe process did not terminate itself after executing
         //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
-
-        m_currentProcess->setStandardOutputFile( bestshaft_workspace_path + QDir::separator() + variant_name +
-                                                 QDir::separator() + "tetgen.log" );
-        // old args: -pqmVCCkO9/7a%1
-        m_currentProcess->start( tetgen_path,
-                                 QStringList() << QString( "-pqmVCCkO9/7a%1" ).arg( max_facet_size ) << tetgen_input_smesh_file_path );
-
-        // TODO: Bind with tetgen and calculix processes
-//    connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::startCalculix );
-//    m_currentProcess->startDetached( m_extension->GetPluginBinDir() + QDir::separator() + "tetgen.exe",
-//                                     QStringList() << QString( "-a%1" ).arg( m_extension->getFacesSize() )
-//                                     << m_extension->getWorkspaceDir() + QDir::separator() + tableWidget->item( i, 0 )->text()
-//                                     + QDir::separator() + "mesh.stl" );
+        m_currentProcess->start( run_script_path,
+                                 QStringList() <<
+                                 bestshaft_workspace_variant_path <<
+                                 bestshaft_home_path <<
+                                 QString( "%1" ).arg( max_facet_size ) <<
+                                 tetgen_node_path <<
+                                 tetgen_face_path <<
+                                 tetgen_ele_path <<
+                                 tet2inp_ccx_path <<
+                                 variant_name
+                                 );
     }
     catch ( const std::runtime_error& ex )
     {
@@ -461,7 +444,7 @@ void ExtensionWindow::startSolve()
     }
 
     if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
-        emit on_solve_stop( ERROR_TYPE_TETGEN, m_currentProcess->error() );
+        emit on_solve_stop( m_currentProcess->error() );
 
     QApplication::restoreOverrideCursor();
 }
@@ -503,10 +486,10 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
     }
 
 label_end:
-    emit on_solve_stop( 0, exitCode/*no error*/ );
+    emit on_solve_stop( exitCode/*no error*/ );
 }
 
-void ExtensionWindow::on_solve_stop( int error, ... )
+void ExtensionWindow::on_solve_stop( int error, ...)
 {
     if ( error )
         qDebug() << QString( "Something error: %1" ).arg( error );

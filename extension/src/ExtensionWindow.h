@@ -46,7 +46,7 @@ private:
     void startSolve();
     void solveEnd(int exitCode, QProcess::ExitStatus);
     void solveStart();
-    void on_solve_stop( int type, int error, ... );
+    void on_solve_stop(int error, ... );
 
 //private:
 //    void createLanguageMenu();
