@@ -5,10 +5,6 @@
 
 #define MaxRecentFiles 5
 
-//#define ERROR_TYPE_EMPTY 0
-#define ERROR_TYPE_TETGEN 2
-#define ERROR_TYPE_SAVESTL 3
-
 class BaseExtension;
 
 class ExtensionWindow : public QDialog, public Ui::ExtensionWindow

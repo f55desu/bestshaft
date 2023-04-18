@@ -72,7 +72,13 @@ protected:
     virtual void ApplyVariant( Variant variant ) = 0;
 
 //    virtual void CalculateMaxTension( Variant variant ) = 0;
-    virtual int SaveSTL( const QString& variant_name, QString& returned_file_path, double& returned_max_facet_size ) = 0;
+
+    virtual void SaveMeshDatabase( const QString& wavefront_obj_file_path,
+                                   const QString& stl_file_path,
+                                   const QString& tetgen_input_poly_file_path,
+                                   const QString& tetgen_input_smesh_file_path,
+                                   const QString& tetgen_input_mtr_file_path,
+                                   double& max_facet_size ) = 0;
 
 //protected:
 //    virtual QString Test() = 0;

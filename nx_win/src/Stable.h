@@ -89,8 +89,8 @@
     #include <uf_evalsf.h>
     #include <uf_brep.h>
     #include <uf_facet.h>
-    #include <uf_sf.h>
     #include <uf_ui.h>
+    #include <uf_attr.h>
 
     //Logging
     #include <log4cpp/Category.hh>
