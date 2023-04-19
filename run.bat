@@ -16,6 +16,6 @@ ccx.bat -i "%~9" >calculix.log
 if %errorlevel% neq 0 (echo CalculiX Exit Code is %errorlevel% & type calculix.log & exit) 1>&2
 
 echo ...Start vtk generator 1>&2 
-python.exe %~2\ccx2paraview.py "%~9.frd" vtk 1>&2 2>frd2vtk.log
+python\amd64\python.exe %~2\ccx2paraview.py "%~9.frd" vtk 1>&2 2>frd2vtk.log
 if %errorlevel% neq 0 (echo ccx2paraview.py Exit Code is %errorlevel% & type frd2vtk.log & exit) 1>&2
 echo Done. 1>&2
