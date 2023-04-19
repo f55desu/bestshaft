@@ -364,7 +364,7 @@ void ExtensionWindow::startSolve()
     const QString default_mesh_file_name = "model.tri.mesh";
     const QString default_calculix_input_file_name = "abaqus.ccx";
 
-    const QString home_path = QDir::homePath();
+    const QString user_default_path = QDir::homePath();
     const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
 
     QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
@@ -373,13 +373,22 @@ void ExtensionWindow::startSolve()
     try
     {
         // create workspace and variant folder if not exist
-        QDir home_dir( home_path );
+        QDir user_dir( user_default_path );
 
-        // folder exists
-        QString bestshaft_workspace_path = home_path + QDir::separator() + bestshaft_workspace_folder_name;
+        // workspace folder not exists
+        if ( !user_dir.exists( bestshaft_workspace_folder_name ) )
+        {
+            // failed to create folder
+            if ( !user_dir.mkdir( bestshaft_workspace_folder_name ) )
+                throw std::exception( ( "Cannot create folder: " + bestshaft_workspace_folder_name.toStdString() ).c_str() );
+
+            // folder created successfuly
+        }
+
+        QString bestshaft_workspace_path = user_default_path + QDir::separator() + bestshaft_workspace_folder_name;
         QDir bestshaft_workspace_dir( bestshaft_workspace_path );
 
-        // folder not exists
+        // variant folder not exists
         if ( !bestshaft_workspace_dir.exists( variant_name ) )
         {
             // failed to create folder
@@ -413,8 +422,7 @@ void ExtensionWindow::startSolve()
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
         const QString run_script_path = bestshaft_home_path + QDir::separator() + "run.bat";
-        const QString bestshaft_workspace_variant_path = QDir::homePath() + QDir::separator() + "BestshaftWorkspace" +
-                                                         QDir::separator() + variant_name;
+        const QString bestshaft_workspace_variant_path = bestshaft_workspace_path + QDir::separator() + variant_name;
 
         const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
                                          ".1.node";
@@ -515,7 +523,7 @@ label_end:
 void ExtensionWindow::on_solve_stop( int error, ... )
 {
     if ( error )
-        qDebug() << QString( "Something error: %1" ).arg( error );
+        BaseExtension::GetLogger().error( QString( "Something error: %1" ).arg( error ).toStdString() );
 
     // return all to the begining state
     calculateButton->setText( calculateButton->property( "tmpName" ).toString() );

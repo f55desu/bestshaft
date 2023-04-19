@@ -17,3 +17,5 @@ old/
 
 external/CalculiX/
 external/tetgen/
+
+.qtc_clangd
