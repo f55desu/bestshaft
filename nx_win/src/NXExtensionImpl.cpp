@@ -132,6 +132,106 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
     //        return;
 }
 
+void NXExtensionImpl::WriteVariants(QMap<QString,BaseExtension::Variant> variants)
+{
+    // Current displayed part tag
+    tag_t tag_display_part = NULL_TAG;
+    tag_display_part = ::UF_PART_ask_display_part();
+
+    if (!tag_display_part)
+    {
+        BaseExtension::GetLogger().error("Failed to write variant to a part. Part not exist");
+        return;
+    }
+
+    if (variants.empty())
+    {
+        BaseExtension::GetLogger().error("Failed to write variant to a part. No variants provided");
+        return;
+    }
+
+    QString variantStr; // Variant#1?Attr1:5.0;Attr2:2.0;$Variant#2?Attr1:6.0;Attr2:3.0;$
+    for (const auto& el : variants.keys())
+    {
+        QString variantName = el;
+        variantStr.append(variantName + "?");
+
+        for (const auto &var : variants[el].keys())
+        {
+            variantStr.append(var + ":" + QString("%1").arg(variants[el][var]) + ";");
+        }
+        variantStr.append("$");
+    }
+    const char *c_variantStr = variantStr.toLocal8Bit().constData();
+
+    // Writing a string attribute to part file
+    UF_CALL( ::UF_ATTR_set_string_user_attribute(tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, c_variantStr, false) );
+}
+
+void NXExtensionImpl::ReadVariants(QMap<QString, Variant> &variants)
+{
+    // Current displayed part tag
+    tag_t tag_display_part = NULL_TAG;
+    tag_display_part = UF_CALL(::UF_PART_ask_display_part());
+
+    if (!tag_display_part)
+    {
+        BaseExtension::GetLogger().error("Failed to read variants from a part. Part not exist");
+        return;
+    }
+
+    char *c_variantStr;
+    bool finded = false;
+    UF_CALL( ::UF_ATTR_get_string_user_attribute(tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, &c_variantStr, &finded));
+
+    // Matreshka
+    QString variantsStr(c_variantStr); // Example: Variant#1?Attr1:5.0;Attr2:2.0;$Variant#2?Attr1:6.0;Attr2:3.0;$
+    QStringList variantsStrList = variantsStr.split("$");
+
+    for (int i = 0; i < variantsStrList.count()-1; i++)
+    {
+        QStringList variantStr = variantsStrList[i].split("?");
+        BaseExtension::Variant variant;
+        QStringList variantAttr = variantStr[1].split(";");
+        for (int j = 0; j < variantAttr.count(); j++)
+        {
+            variant.insert(variantAttr[j].split(":")[0], variantAttr[j].split(":")[1].toDouble());
+        }
+        variants.insert(variantStr[0], variant);
+    }
+
+//    int attr_count;
+//    UF_CALL( ::UF_ATTR_count_attributes(tag_display_part, UF_ATTR_string, &attr_count) );
+
+//    if (attr_count <= 0)
+//    {
+//        ::UF_free(&attr_count);
+//        return;
+//    }
+
+//    ::UF_ATTR_part_attr_p_t *part_attr_array = new ::UF_ATTR_part_attr_p_t[attr_count];
+//    UF_CALL( ::UF_ATTR_ask_part_attrs(tag_display_part, &attr_count, part_attr_array) );
+
+//    for (int i = 0; i < attr_count; i++)
+//    {
+//        QString variantStr(part_attr_array[i]->string_value);
+//        QStringList stringList = variantStr.split(";");
+
+//        BaseExtension::Variant variant;
+
+//        // Iterating property/value pairs
+//        for (int str = 0; str < stringList.count(); str+=2)
+//        {
+//            variant.insert(stringList.at(str), stringList.at(str+1).toDouble());
+//        }
+
+//        variants.insert(QString(part_attr_array[i]->title), variant);
+//    }
+
+//    ::UF_free(&attr_count);
+//    ::UF_free(part_attr_array);
+}
+
 void NXExtensionImpl::ApplyVariant( BaseExtension::Variant variant )
 {
     for ( auto& var : variant.keys() )

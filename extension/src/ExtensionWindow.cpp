@@ -80,10 +80,22 @@ void ExtensionWindow::showEvent( QShowEvent* e )
 void ExtensionWindow::closeEvent( QCloseEvent* event )
 {
     Q_UNUSED( event );
-//    if ( mayBeSave() )
-//        event->accept();
-//    else
-//        event->ignore();
+
+    // Saving all variants to part
+    QMap<QString, BaseExtension::Variant> variantsToSave;
+    for (int row = 0; row < tableWidget->rowCount(); row++)
+    {
+        BaseExtension::Variant variantToSave;
+
+        // Excluding variant name and von mises
+        for (int col = 1; col < tableWidget->columnCount()-1; col++)
+        {
+            variantToSave.insert(tableWidget->horizontalHeaderItem(col)->text(), tableWidget->item(row, col)->text().toDouble());
+        }
+
+        variantsToSave.insert(tableWidget->item(row, 0)->text(), variantToSave);
+    }
+    m_extension->WriteVariants(variantsToSave);
 }
 
 void ExtensionWindow::on_actionExit_triggered()
@@ -258,6 +270,13 @@ void ExtensionWindow::on_addButton_clicked()
 
     tableWidget->selectRow( rowCount );
 
+    BaseExtension::Variant variantToSave;
+
+    for (int i = 1; i < tableWidget->columnCount()-1; i++)
+    {
+        variantToSave.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(rowCount, i)->text().toDouble());
+    }
+
     m_extension->variants.append( variant );
 }
 
@@ -266,6 +285,11 @@ void ExtensionWindow::initilizeVariant()
     QApplication::setOverrideCursor( Qt::WaitCursor );
 
     BaseExtension::Variant variant = m_extension->ExtractVariant();
+
+    QMap<QString, BaseExtension::Variant> savedVariants;
+
+    m_extension->ReadVariants(savedVariants);
+
     m_extension->variants.append( variant );
 
     tableWidget->setColumnCount( variant.count() + 2 ); // Variant columns + VarCol + VonMisesCol
@@ -303,6 +327,30 @@ void ExtensionWindow::initilizeVariant()
 
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
+
+    // First insert saved variants
+    if (!savedVariants.empty())
+    {
+        for (const auto& var : savedVariants.keys())
+        {
+            int rowCount = tableWidget->rowCount();
+            tableWidget->insertRow( rowCount );
+            QTableWidgetItem* variantName = new QTableWidgetItem( var );
+            tableWidget->setItem( rowCount, 0, variantName );
+
+            for (const auto& attrName : savedVariants[var].keys())
+            {
+                for ( int i = 0; i < tableWidget->columnCount(); i++ )
+                {
+                    if ( tableWidget->horizontalHeaderItem( i )->text() == attrName )
+                    {
+                        QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                        tableWidget->setItem( rowCount, i, item );
+                    }
+                }
+            }
+        }
+    }
 
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );

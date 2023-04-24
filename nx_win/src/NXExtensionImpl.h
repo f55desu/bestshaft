@@ -53,10 +53,13 @@ public:
         INTERMEDIATE_MIDDLE,    // центральная горизонтальная грань
         INTERMEDIATE_BOTTOM     // нижняя боковая грань
     };
-
+protected:
+    const char* c_variantsAttrTitle = "variantsAttr";
 protected:
     Variant ExtractVariant();
     void ApplyVariant( BaseExtension::Variant variant );
+    void WriteVariants(QMap<QString,BaseExtension::Variant> variants);
+    void ReadVariants(QMap<QString, BaseExtension::Variant> &variants);
 
 //    void CalculateMaxTension( BaseExtension::Variant variant );
 
@@ -192,6 +195,7 @@ protected:
 //protected:
 //    void NamingTest();
     // for extrude
+
 public:
     uf_list_p_t objectList;
 //public:

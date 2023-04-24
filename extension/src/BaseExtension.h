@@ -70,6 +70,8 @@ public:
 protected:
     virtual Variant ExtractVariant() = 0;
     virtual void ApplyVariant( Variant variant ) = 0;
+    virtual void WriteVariants(QMap<QString, BaseExtension::Variant> variants) = 0;
+    virtual void ReadVariants(QMap<QString, Variant> &variants) = 0;
 
 //    virtual void CalculateMaxTension( Variant variant ) = 0;
 
