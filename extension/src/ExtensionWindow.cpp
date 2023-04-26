@@ -29,7 +29,6 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     currentVariantId = 0;
     tableWidget->setProperty( "alreadyCalculated", false );
     on_addButton_clicked();
-    boldRow( currentVariantId, tableWidget ); // by default first row is applied
     tableWidget->selectRow( 0 ); // by default select the first row
 }
 
@@ -332,6 +331,59 @@ void ExtensionWindow::initilizeVariant()
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 
+    // First insert saved variants
+    if (!savedVariants.empty())
+    {
+        for (const auto& var : savedVariants.keys())
+        {
+            int rowCount = tableWidget->rowCount();
+            tableWidget->insertRow( rowCount );
+            QTableWidgetItem* variantName = new QTableWidgetItem( var );
+            tableWidget->setItem( rowCount, 0, variantName );
+
+            for (const auto& attrName : savedVariants[var].keys())
+            {
+                for ( int i = 0; i < tableWidget->columnCount(); i++ )
+                {
+                    if ( tableWidget->horizontalHeaderItem( i )->text() == attrName )
+                    {
+                        // If there is a Von Mises disable any further editing
+                        if (savedVariants[var][QString("Von Mises")] != 0.0)
+                        {
+                            QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+                            tableWidget->setItem( rowCount, i, item );
+                            calculatedVariants.append(rowCount);
+                        }
+                        else {
+                            QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                            tableWidget->setItem( rowCount, i, item );
+                        }
+                    }
+                    if (tableWidget->horizontalHeaderItem( i )->text() == attrName && attrName == "Von Mises")
+                    {
+                        QTableWidgetItem* vonmises_item;
+                        if (savedVariants[var][attrName] == 0.0)
+                        {
+                            vonmises_item = new QTableWidgetItem( "—" );
+                        }
+                        else {
+                            vonmises_item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                            tableWidget->item(rowCount, 0)->setFlags(tableWidget->item(rowCount, 0)->flags() & ~Qt::ItemIsEditable);
+                        }
+                        vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
+                        tableWidget->setItem( rowCount, i, vonmises_item );
+                    }
+                }
+            }
+        }
+
+        for (const auto& var : savedVariants)
+        {
+            m_extension->variants.append(var);
+        }
+    }
+
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
     QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
@@ -354,47 +406,9 @@ void ExtensionWindow::initilizeVariant()
     tableWidget->setItem( rowCount, tableWidget->columnCount() - 1,
                           vonmises_item ); // Cтавится прочерк у Von Mises.
 
-    // Then insert saved variants
-    if (!savedVariants.empty())
-    {
-        for (const auto& var : savedVariants.keys())
-        {
-            int rowCount = tableWidget->rowCount();
-            tableWidget->insertRow( rowCount );
-            QTableWidgetItem* variantName = new QTableWidgetItem( var );
-            tableWidget->setItem( rowCount, 0, variantName );
-
-            for (const auto& attrName : savedVariants[var].keys())
-            {
-                for ( int i = 0; i < tableWidget->columnCount(); i++ )
-                {
-                    if ( tableWidget->horizontalHeaderItem( i )->text() == attrName )
-                    {
-                        QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
-                        tableWidget->setItem( rowCount, i, item );
-                    }
-                    if (tableWidget->horizontalHeaderItem( i )->text() == attrName && attrName == "Von Mises")
-                    {
-                        QTableWidgetItem* vonmises_item;
-                        if (savedVariants[var][attrName] == 0.0)
-                        {
-                            vonmises_item = new QTableWidgetItem( "—" );
-                        }
-                        else {
-                            vonmises_item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
-                        }
-                        vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
-                        tableWidget->setItem( rowCount, i, vonmises_item );
-                    }
-                }
-            }
-        }
-
-        for (const auto& var : savedVariants)
-        {
-            m_extension->variants.append(var);
-        }
-    }
+    // by default after loading saved variants the next inserted row is applied
+    currentVariantId = rowCount;
+    boldRow( currentVariantId, tableWidget );
 
     QApplication::restoreOverrideCursor();
 }
