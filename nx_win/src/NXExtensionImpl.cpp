@@ -162,7 +162,10 @@ void NXExtensionImpl::WriteVariants(QMap<QString,BaseExtension::Variant> variant
         }
         variantStr.append("$");
     }
-    const char *c_variantStr = variantStr.toLocal8Bit().constData();
+
+    std::string variantStdStr = variantStr.toStdString();
+
+    const char *c_variantStr = variantStdStr.c_str();
 
     // Writing a string attribute to part file
     UF_CALL( ::UF_ATTR_set_string_user_attribute(tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, c_variantStr, false) );
