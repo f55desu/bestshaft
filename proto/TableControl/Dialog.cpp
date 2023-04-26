@@ -1,12 +1,23 @@
+#include "windows.h"
 #include "Dialog.h"
+#include "SettingsDialog.h"
 
 #include <QDebug>
 #include <QThread>
+
+#define IDM_SETTINGS 0x0010
 
 Dialog::Dialog(QWidget *parent)
     : QDialog(parent)
 {
     setupUi(this);
+
+    HMENU hMenu = ::GetSystemMenu(( HWND )winId(), FALSE);
+    if (hMenu != NULL)
+    {
+        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_SEPARATOR, 0, nullptr);
+        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_STRING, IDM_SETTINGS, qPrintable(tr("&Settings...")));
+    }
 
 //    std::generate(m_model.begin(), m_model.end(),
 //                  [n = 1] () mutable { n++; return std::pair(std::format("Variant #{}",n),static_cast<double>(n));} );
@@ -206,3 +217,22 @@ void Dialog::on_pushButton_2_clicked()
     m_tableModel->AddVariant(params);
 }
 
+bool Dialog::nativeEvent( const QByteArray& eventType, void* message, qintptr* result )
+{
+    if (eventType == "windows_generic_MSG")
+    {
+         MSG* m = reinterpret_cast<MSG *>(message);
+         if (m->message == WM_SYSCOMMAND)
+         {
+           if ((m->wParam & 0xfff0) == IDM_SETTINGS)
+           {
+              *result = 0;
+               SettingsDialog* dialog = new SettingsDialog(this);
+               dialog->open();
+               return true;
+           }
+         }
+    }
+
+   return false;
+}

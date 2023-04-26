@@ -29,6 +29,7 @@ private:
     void startTetgen(int selectedItemId);
 
     void on_pushButton_2_clicked();
+    bool nativeEvent(const QByteArray &eventType, void *message, qintptr *result);
 
 private:
     DataModel* m_tableModel;
