@@ -11,6 +11,8 @@ class ExtensionWindow : public QDialog, public Ui::ExtensionWindow
 {
     Q_OBJECT
 
+    friend class SettingsDialog;
+
 public:
     ExtensionWindow( QWidget* parent = NULL, BaseExtension* ext = NULL );
 public:
@@ -21,6 +23,7 @@ protected:
 protected:
     virtual void closeEvent( QCloseEvent* e );
 protected:
+    bool nativeEvent( const QByteArray& eventType, void* message, qintptr* result );
     bool eventFilter( QObject* obj, QEvent* e );
 
 private slots:
@@ -56,8 +59,9 @@ protected:
 protected:
     void readSettings();
 
-private:
+protected:
     BaseExtension* m_extension;
+private:
     QProcess* m_currentProcess;
     QModelIndexList m_rowsToBeProceed;
     QList<int> calculatedVariants;

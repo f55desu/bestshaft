@@ -1,12 +1,21 @@
 #include "Stable.h"
-
+#include "windows.h"
 #include "BaseExtension.h"
 #include "ExtensionWindow.h"
+#include "SettingsDialog.h"
+
+#define IDM_SETTINGS 0x0010
 
 ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     QDialog( parent ), m_extension( ext )
 {
     setupUi( this );
+    HMENU hMenu = ::GetSystemMenu(( HWND )winId(), FALSE);
+    if (hMenu != NULL)
+    {
+        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_SEPARATOR, 0, nullptr);
+        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_STRING, IDM_SETTINGS, qPrintable(tr("&Settings...")));
+    }
     installEventFilter( this );
 
     // Selecting one row at once
@@ -38,6 +47,26 @@ ExtensionWindow::~ExtensionWindow()
 
     if ( !m_extension->GetModalState() )
         m_extension->m_extensionWindow = NULL; //Reset extension window reference
+}
+
+bool ExtensionWindow::nativeEvent( const QByteArray& eventType, void* message, qintptr* result )
+{
+    if (eventType == "windows_generic_MSG")
+    {
+         MSG* m = reinterpret_cast<MSG *>(message);
+         if (m->message == WM_SYSCOMMAND)
+         {
+           if ((m->wParam & 0xfff0) == IDM_SETTINGS)
+           {
+              *result = 0;
+               SettingsDialog* dialog = new SettingsDialog(this);
+               dialog->open();
+               return true;
+           }
+         }
+    }
+
+   return false;
 }
 
 void ExtensionWindow::readSettings()
@@ -449,7 +478,6 @@ void ExtensionWindow::startSolve()
     const QString default_calculix_input_file_name = "abaqus.ccx";
 
     const QString user_default_path = QDir::homePath();
-    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
 
     QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
     std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
@@ -460,17 +488,17 @@ void ExtensionWindow::startSolve()
         QDir user_dir( user_default_path );
 
         // workspace folder not exists
-        if ( !user_dir.exists( bestshaft_workspace_folder_name ) )
+        if ( !user_dir.exists( m_extension->bestshaft_workspace_folder_name ) )
         {
             // failed to create folder
-            if ( !user_dir.mkdir( bestshaft_workspace_folder_name ) )
-                throw std::exception( ( "Cannot create folder: " + bestshaft_workspace_folder_name.toStdString() ).c_str() );
+            if ( !user_dir.mkdir( m_extension->bestshaft_workspace_folder_name ) )
+                throw std::exception( ( "Cannot create folder: " + m_extension->bestshaft_workspace_folder_name.toStdString() ).c_str() );
 
             // folder created successfuly
         }
 
-        QString bestshaft_workspace_path = user_default_path + QDir::separator() + bestshaft_workspace_folder_name;
-        QDir bestshaft_workspace_dir( bestshaft_workspace_path );
+        //QString bestshaft_workspace_path = user_default_path + QDir::separator() + m_extension->bestshaft_workspace_folder_name;
+        QDir bestshaft_workspace_dir( m_extension->bestshaft_workspace_path );
 
         // variant folder not exists
         if ( !bestshaft_workspace_dir.exists( variant_name ) )
@@ -483,15 +511,15 @@ void ExtensionWindow::startSolve()
         }
 
         // create mesh files paths
-        const QString wavefront_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString wavefront_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                             QDir::separator() + default_mesh_file_name + ".obj";
-        const QString stl_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString stl_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                       QDir::separator() + default_mesh_file_name + ".stl";
-        const QString tetgen_input_poly_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString tetgen_input_poly_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                     QDir::separator() + default_mesh_file_name + ".poly";
-        const QString tetgen_input_smesh_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString tetgen_input_smesh_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                      QDir::separator() + default_mesh_file_name + ".smesh";
-        const QString tetgen_input_mtr_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString tetgen_input_mtr_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                    QDir::separator() + default_mesh_file_name + ".mtr";
 
         double max_facet_size = -1;
@@ -506,7 +534,7 @@ void ExtensionWindow::startSolve()
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
         const QString run_script_path = bestshaft_home_path + QDir::separator() + "run.bat";
-        const QString bestshaft_workspace_variant_path = bestshaft_workspace_path + QDir::separator() + variant_name;
+        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
 
         const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
                                          ".1.node";
@@ -520,6 +548,7 @@ void ExtensionWindow::startSolve()
 
         const QString ccx_inp_path_without_extension = bestshaft_workspace_variant_path + QDir::separator() +
                                                        default_calculix_input_file_name;
+        const QString discLetter(m_extension->bestshaft_workspace_path.at(0));
 
         m_currentProcess = new QProcess();
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
@@ -537,7 +566,8 @@ void ExtensionWindow::startSolve()
                                    tetgen_ele_path <<
                                    tet2inp_ccx_path <<
                                    variant_name <<
-                                   ccx_inp_path_without_extension )
+                                   ccx_inp_path_without_extension <<
+                                   discLetter)
                                );
 
 //        qDebug() << "run.bat: " << run_script_path << bestshaft_workspace_variant_path << bestshaft_home_path <<
