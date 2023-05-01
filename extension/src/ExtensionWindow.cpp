@@ -79,6 +79,10 @@ void ExtensionWindow::readSettings()
     setGeometry( rect );
     m_settings.endGroup();
 
+    m_settings.beginGroup( "MISC" );
+    if (!m_settings.value("WORKSPACEPATH").isNull())
+        m_extension->bestshaft_workspace_path = m_settings.value("WORKSPACEPATH").toString();
+
     m_firstShowFlag = false;
 }
 
@@ -89,6 +93,9 @@ void ExtensionWindow::writeSettings()
 
     m_settings.beginGroup( "GENERAL" );
     m_settings.setValue( "GEOMETRY", geometry() );
+    m_settings.endGroup();
+    m_settings.beginGroup( "MISC" );
+    m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path);
     m_settings.endGroup();
 }
 
