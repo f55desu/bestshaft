@@ -621,6 +621,16 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
                                                       &string_value_more_detailed,
                                                       &has_attribute_more_detailed ) );
 
+//        // check more detailed
+//        const char* title_more_detailed_bottom = "MORE_DETAILED_BOTTOM";
+//        char* string_value_more_detailed_bottom = 0;
+//        logical has_attribute_more_detailed_bottom = false;
+//        UF_CALL( ::UF_ATTR_get_string_user_attribute( face_tag,
+//                                                      title_more_detailed_bottom,
+//                                                      UF_ATTR_NOT_ARRAY,
+//                                                      &string_value_more_detailed_bottom,
+//                                                      &has_attribute_more_detailed_bottom ) );
+
         // check intermediate top
         const char* title_intermediate_top = "INTERMEDIATE_TOP";
         char* string_value_intermediate_top = 0;
@@ -667,6 +677,9 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
 
             if ( has_attribute_more_detailed )
                 current_tet_point.marker = BoundaryMarker::MORE_DETAILED;
+
+//            if ( has_attribute_more_detailed_bottom )
+//                current_tet_point.marker = BoundaryMarker::MORE_DETAILED_BOTTOM;
 
             if ( has_attribute_intermediate_top )
                 current_tet_point.marker = BoundaryMarker::INTERMEDIATE_TOP;
@@ -722,6 +735,12 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
             ::UF_free( string_value_more_detailed );
         }
 
+//        if ( has_attribute_more_detailed_bottom )
+//        {
+//            tetgen_facet.marker = BoundaryMarker::MORE_DETAILED_BOTTOM;
+//            ::UF_free( string_value_more_detailed_bottom );
+//        }
+
         if ( has_attribute_intermediate_top )
         {
             tetgen_facet.marker = BoundaryMarker::INTERMEDIATE_TOP;
@@ -753,6 +772,7 @@ void NXExtensionImpl::SaveMeshDatabase( const QString& wavefront_obj_file_path,
                                         const QString& tetgen_input_poly_file_path,
                                         const QString& tetgen_input_smesh_file_path,
                                         const QString& tetgen_input_mtr_file_path,
+                                        const QString& gmsh_msh_file_path,
                                         double& max_facet_size )
 {
     std::set<TetgenPoint3D> points;
@@ -769,4 +789,287 @@ void NXExtensionImpl::SaveMeshDatabase( const QString& wavefront_obj_file_path,
     WritePolyFile( tetgen_input_poly_file_path, points, facets );
     WriteSmeshFile( tetgen_input_smesh_file_path, points, facets );
     WriteMtrFile( tetgen_input_mtr_file_path, points, bounding_box_diagonal_size );
+
+    // .msh and .stl files for gmsh
+    // TODO: save .geo file and make adaptive mesh
+    WriteMshFile( gmsh_msh_file_path, points, facets, max_facet_size );
+}
+
+void NXExtensionImpl::WriteMshFile( const QString& msh_file_path,
+                                    const std::set<TetgenPoint3D>& points,
+                                    const std::vector<TetgenFacet>& facets,
+                                    double& max_facet_size )
+{
+#if 1
+    // write .msh file
+    std::ofstream out( msh_file_path.toStdString() );
+
+    if ( !out.is_open() )
+        throw std::runtime_error( "Cannot open file " + msh_file_path.toStdString() );
+
+    out << "$MeshFormat\n"
+        << "4.1 0 8\n"
+        << "$EndMeshFormat\n"
+        << std::endl;
+
+    out << "$Nodes\n"
+        << "1 " << points.size() << " 1 " << points.size() << "\n"
+        << "2 1 0 " << points.size() << "\n";
+
+    unsigned long long index = 0;
+    std::map<TetgenPoint3D, unsigned long long> point_index_map;
+
+    std::set<TetgenPoint3D>::const_iterator p_start, p_it, p_end;
+    p_start = points.begin(), p_it = p_start, p_end = points.end();
+
+#if 0
+    // not work
+
+    int marker_as_int = 0;
+
+    for ( marker_as_int = BoundaryMarker::DEFAULT; marker_as_int < BoundaryMarker::MORE_DETAILED_BOTTOM; marker_as_int++ )
+    {
+        switch ( marker_as_int )
+        {
+            case BoundaryMarker::DEFAULT:
+                out << "2 1 0 " << points.size() << "\n";
+                break;
+
+            case BoundaryMarker::CONSTRAINT:
+                break;
+
+            case BoundaryMarker::FORCE:
+                break;
+
+            case BoundaryMarker::INTERMEDIATE_BOTTOM:
+                break;
+
+            case BoundaryMarker::INTERMEDIATE_MIDDLE:
+                break;
+
+            case BoundaryMarker::INTERMEDIATE_TOP:
+                break;
+
+            case BoundaryMarker::MORE_DETAILED:
+                break;
+
+            case BoundaryMarker::MORE_DETAILED_BOTTOM:
+                break;
+        }
+
+        while ( p_it != p_end )
+        {
+            if ( marker_as_int == p_it->marker )
+            {
+                out << ++index << "\n";
+                point_index_map[( *p_it )] = index;
+            }
+
+            p_it++;
+        }
+    }
+
+#else
+
+    while ( p_it != p_end )
+    {
+        out << ++index << "\n";
+        point_index_map[( *p_it )] = index;
+
+        p_it++;
+    }
+
+#endif
+
+    for ( const auto& point : points )
+        out << std::fixed << point.point.x << " " << point.point.y << " " << point.point.z << "\n";
+
+    out << "$EndNodes\n" << std::endl;
+
+    out << "$Elements\n"
+        << "1 " << facets.size() << " 1 " << facets.size() << "\n"
+        << "2 1 2 " << facets.size() << "\n";
+
+    std::vector<TetgenFacet>::const_iterator start, it, end;
+
+    for ( start = facets.begin(), it = start, end = facets.end(); it != end; ++it )
+        out << ( it - start ) + 1 << " "
+            << point_index_map[it->p1] << " "
+            << point_index_map[it->p2] << " "
+            << point_index_map[it->p3] << "\n";
+
+    out << "$EndElements\n" << std::endl;
+
+    out << "$NodeData\n"
+        << "1\n"
+        << points.size() << "\n";
+
+    for ( const auto& point : points )
+        if ( point.marker == BoundaryMarker::MORE_DETAILED )
+            out << point_index_map[point] << " " << max_facet_size / 2.0 << "\n";
+        else
+            out << point_index_map[point] << " " << max_facet_size << "\n";
+
+    out << "$EndNodeData\n"
+        << std::endl;
+
+    out.close();
+#else
+    // not work
+    // others
+    std::string default_facets = ( fileName + ".default.stl" ).toStdString(),
+                constraint_facets = ( fileName + ".constraint.stl" ).toStdString(),
+                force_facets = ( fileName + ".force.stl" ).toStdString(),
+                more_detailed_facets = ( fileName + ".more_detailed.stl" ).toStdString(),
+                more_detailed_bottom_facets = ( fileName + ".more_detailed_bottom.stl" ).toStdString(),
+                intermediate_top_facets = ( fileName + ".intermediate_top.stl" ).toStdString(),
+                intermediate_middle_facets = ( fileName + ".intermediate_middle.stl" ).toStdString(),
+                intermediate_bottom_facets = ( fileName + ".intermediate_bottom.stl" ).toStdString();
+
+    std::ofstream out_default( default_facets ),
+        out_constraint( constraint_facets ),
+        out_force( force_facets ),
+        out_more_detailed( more_detailed_facets ),
+        out_more_detailed_bottom( more_detailed_bottom_facets ),
+        out_intermediate_top( intermediate_top_facets ),
+        out_intermediate_middle( intermediate_middle_facets ),
+        out_intermediate_bottom( intermediate_bottom_facets );
+
+    if ( !out_default.is_open() )
+        throw std::runtime_error( "Cannot open file " + default_facets );
+
+    if ( !out_constraint.is_open() )
+        throw std::runtime_error( "Cannot open file " + constraint_facets );
+
+    if ( !out_force.is_open() )
+        throw std::runtime_error( "Cannot open file " + force_facets );
+
+    if ( !out_more_detailed.is_open() )
+        throw std::runtime_error( "Cannot open file " + more_detailed_facets );
+
+    if ( !out_more_detailed_bottom.is_open() )
+        throw std::runtime_error( "Cannot open file " + more_detailed_bottom_facets );
+
+    if ( !out_intermediate_top.is_open() )
+        throw std::runtime_error( "Cannot open file " + intermediate_top_facets );
+
+    if ( !out_intermediate_middle.is_open() )
+        throw std::runtime_error( "Cannot open file " + intermediate_middle_facets );
+
+    if ( !out_intermediate_bottom.is_open() )
+        throw std::runtime_error( "Cannot open file " + intermediate_bottom_facets );
+
+    out_default             << "solid my_solid\n";
+    out_constraint          << "solid my_solid\n";
+    out_force               << "solid my_solid\n";
+    out_more_detailed       << "solid my_solid\n";
+    out_more_detailed_bottom << "solid my_solid\n";
+    out_intermediate_top    << "solid my_solid\n";
+    out_intermediate_middle << "solid my_solid\n";
+    out_intermediate_bottom << "solid my_solid\n";
+
+    for ( it = facets.begin(), end = facets.end(); it != end; ++it )
+    {
+        switch ( it->marker )
+        {
+            case BoundaryMarker::DEFAULT:
+                out_default << "  facet normal 0 0 0\n"
+                            << "    outer loop\n"
+                            << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                            << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                            << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                            << "    endloop\n"
+                            << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::CONSTRAINT:
+                out_constraint << "  facet normal 0 0 0\n"
+                               << "    outer loop\n"
+                               << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                               << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                               << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                               << "    endloop\n"
+                               << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::FORCE:
+                out_force << "  facet normal 0 0 0\n"
+                          << "    outer loop\n"
+                          << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                          << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                          << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                          << "    endloop\n"
+                          << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::MORE_DETAILED:
+                out_more_detailed << "  facet normal 0 0 0\n"
+                                  << "    outer loop\n"
+                                  << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                                  << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                                  << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                                  << "    endloop\n"
+                                  << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::MORE_DETAILED_BOTTOM:
+                out_more_detailed_bottom << "  facet normal 0 0 0\n"
+                                         << "    outer loop\n"
+                                         << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                                         << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                                         << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                                         << "    endloop\n"
+                                         << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::INTERMEDIATE_TOP:
+                out_intermediate_top << "  facet normal 0 0 0\n"
+                                     << "    outer loop\n"
+                                     << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                                     << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                                     << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                                     << "    endloop\n"
+                                     << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::INTERMEDIATE_MIDDLE:
+                out_intermediate_middle << "  facet normal 0 0 0\n"
+                                        << "    outer loop\n"
+                                        << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                                        << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                                        << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                                        << "    endloop\n"
+                                        << "  endfacet\n";
+                break;
+
+            case BoundaryMarker::INTERMEDIATE_BOTTOM:
+                out_intermediate_bottom << "  facet normal 0 0 0\n"
+                                        << "    outer loop\n"
+                                        << "      vertex " << it->p1.point.x << " " << it->p1.point.y << " " << it->p1.point.z << "\n"
+                                        << "      vertex " << it->p2.point.x << " " << it->p2.point.y << " " << it->p2.point.z << "\n"
+                                        << "      vertex " << it->p3.point.x << " " << it->p3.point.y << " " << it->p3.point.z << "\n"
+                                        << "    endloop\n"
+                                        << "  endfacet\n";
+                break;
+        }
+    }
+
+    out_default             << "endsolid my_solid\n";
+    out_constraint          << "endsolid my_solid\n";
+    out_force               << "endsolid my_solid\n";
+    out_more_detailed       << "endsolid my_solid\n";
+    out_more_detailed_bottom       << "endsolid my_solid\n";
+    out_intermediate_top    << "endsolid my_solid\n";
+    out_intermediate_middle << "endsolid my_solid\n";
+    out_intermediate_bottom << "endsolid my_solid\n";
+
+    out_default             .close();
+    out_constraint          .close();
+    out_force               .close();
+    out_more_detailed       .close();
+    out_more_detailed_bottom       .close();
+    out_intermediate_top    .close();
+    out_intermediate_middle .close();
+    out_intermediate_bottom .close();
+#endif
 }

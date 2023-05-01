@@ -528,6 +528,8 @@ void ExtensionWindow::startSolve()
                                                      QDir::separator() + default_mesh_file_name + ".smesh";
         const QString tetgen_input_mtr_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                    QDir::separator() + default_mesh_file_name + ".mtr";
+        const QString gmsh_msh_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+                                           QDir::separator() + default_mesh_file_name + ".msh";
 
         double max_facet_size = -1;
 
@@ -537,6 +539,7 @@ void ExtensionWindow::startSolve()
                                        tetgen_input_poly_file_path,
                                        tetgen_input_smesh_file_path,
                                        tetgen_input_mtr_file_path,
+                                       gmsh_msh_file_path,
                                        max_facet_size );
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
@@ -586,10 +589,12 @@ void ExtensionWindow::startSolve()
     catch ( const std::runtime_error& ex )
     {
         // TODO: print ERROR to logger
+        BaseExtension::GetLogger().error( ex.what() );
     }
     catch ( const std::exception& ex )
     {
         // TODO: print ERROR to logger
+        BaseExtension::GetLogger().error( ex.what() );
     }
 
     if ( !m_currentProcess->waitForStarted() && m_currentProcess->error() != 5 )
@@ -600,8 +605,28 @@ void ExtensionWindow::startSolve()
 
 void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*/ )
 {
-    double someValue = 0;
-    someValue = calculateMaxTension();
+    double someValue = -1;
+
+    try
+    {
+        const QString user_default_path = QDir::homePath(),
+                      bestshaft_workspace_folder_name = "BestshaftWorkspace",
+                      default_calculix_input_file_name = "abaqus.ccx";
+
+        QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
+        std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
+
+        const QString ccx_dat_path = user_default_path + QDir::separator() +
+                                     bestshaft_workspace_folder_name + QDir::separator() +
+                                     variant_name + QDir::separator() +
+                                     default_calculix_input_file_name + ".dat";
+
+        someValue = calculateMaxTension( ccx_dat_path );
+    }
+    catch ( const std::runtime_error& ex )
+    {
+        BaseExtension::GetLogger().error( ex.what() );
+    }
 
     if ( exitCode )
         goto label_end;
@@ -826,11 +851,43 @@ void ExtensionWindow::onMultiplySelection()
     applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) );
 }
 
-double ExtensionWindow::calculateMaxTension()
+double ExtensionWindow::calculateMaxTension( const QString& ccx_dat_filepath )
 {
+#if 0
     srand( time( NULL ) );
     double random_double = static_cast<double>( rand() ) / RAND_MAX;
     return random_double;
+#else
+    std::ifstream dat( ccx_dat_filepath.toStdString() );
+
+    if ( !dat.is_open() )
+        throw std::runtime_error( "Cannot open file " + ccx_dat_filepath.toStdString() );
+
+    std::string line;
+    std::getline( dat, line );
+
+    int elem, integ_pnt;
+    double Sxx, Syy, Szz, Sxy, Sxz, Syz;
+
+    double von_mises_max = std::numeric_limits<double>::min(),
+           von_mises;
+
+    while ( std::getline( dat, line ) )
+        if ( sscanf_s( line.c_str(), "%d %d %lf %lf %lf %lf %lf %lf",
+                       &elem, &integ_pnt, &Sxx, &Syy, &Szz, &Sxy, &Sxz, &Syz ) == 8 )
+        {
+            von_mises = 0.5 * ( ::pow( Sxx - Syy, 2.0 ) + ::pow( Syy - Szz, 2.0 ) + ::pow( Szz - Sxx, 2.0 ) );
+            von_mises += 3.0 * ( Sxy * Sxy + Sxz * Sxz + Syz * Syz );
+            von_mises = ::sqrt( von_mises );
+
+            if ( von_mises > von_mises_max )
+                von_mises_max = von_mises;
+
+        }
+
+    dat.close();
+    return von_mises_max;
+#endif
 }
 
 // Bold specific row

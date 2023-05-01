@@ -82,6 +82,7 @@ protected:
                                    const QString& tetgen_input_poly_file_path,
                                    const QString& tetgen_input_smesh_file_path,
                                    const QString& tetgen_input_mtr_file_path,
+                                   const QString& gmsh_msh_file_path,
                                    double& max_facet_size ) = 0;
 
 //protected:

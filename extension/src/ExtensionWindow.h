@@ -40,7 +40,7 @@ private slots:
     void on_cellEntered(int row, int column);
 
 protected:
-    double calculateMaxTension();
+    double calculateMaxTension( const QString& ccx_dat_filepath );
 private:
     void boldRow( int rowId, QTableWidget* tableWidget, bool bold = true );
     void initilizeVariant();
@@ -48,9 +48,9 @@ private:
     QString GenerateVariantName();
 private:
     void startSolve();
-    void solveEnd(int exitCode, QProcess::ExitStatus);
+    void solveEnd( int exitCode, QProcess::ExitStatus );
     void solveStart();
-    void on_solve_stop(int error, ... );
+    void on_solve_stop( int error, ... );
 
 //private:
 //    void createLanguageMenu();

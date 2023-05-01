@@ -52,6 +52,7 @@ public:
         INTERMEDIATE_TOP,       // верхняя боковая грань
         INTERMEDIATE_MIDDLE,    // центральная горизонтальная грань
         INTERMEDIATE_BOTTOM     // нижняя боковая грань
+//        MORE_DETAILED_BOTTOM
     };
 protected:
     const char* c_variantsAttrTitle = "variantsAttr";
@@ -183,7 +184,13 @@ protected:
                            const QString& tetgen_input_poly_file_path,
                            const QString& tetgen_input_smesh_file_path,
                            const QString& tetgen_input_mtr_file_path,
+                           const QString& gmsh_msh_file_path,
                            double& max_facet_size );
+
+    void WriteMshFile( const QString& msh_file_path,
+                       const std::set<TetgenPoint3D>& points,
+                       const std::vector<TetgenFacet>& facets,
+                       double& max_facet_size );
 
 //public slots:
 //    void CheckContextIsValid();
