@@ -64,12 +64,16 @@ protected:
 
 public:
     QString GetHomePath() const;
+    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
+    QString bestshaft_workspace_path = QDir::homePath() + QDir::separator() + bestshaft_workspace_folder_name;
 public:
     static Category& GetLogger();
 
 protected:
     virtual Variant ExtractVariant() = 0;
     virtual void ApplyVariant( Variant variant ) = 0;
+    virtual void WriteVariants(QMap<QString, BaseExtension::Variant> variants) = 0;
+    virtual void ReadVariants(QMap<QString, Variant> &variants) = 0;
 
 //    virtual void CalculateMaxTension( Variant variant ) = 0;
 

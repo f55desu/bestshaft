@@ -1,5 +1,5 @@
 @echo off
-
+%~10:
 cd %~1
 set path=%~2;path
 

@@ -1,12 +1,21 @@
 #include "Stable.h"
-
+#include "windows.h"
 #include "BaseExtension.h"
 #include "ExtensionWindow.h"
+#include "SettingsDialog.h"
+
+#define IDM_SETTINGS 0x0010
 
 ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     QDialog( parent ), m_extension( ext )
 {
     setupUi( this );
+    HMENU hMenu = ::GetSystemMenu(( HWND )winId(), FALSE);
+    if (hMenu != NULL)
+    {
+        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_SEPARATOR, 0, nullptr);
+        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_STRING, IDM_SETTINGS, qPrintable(tr("&Settings...")));
+    }
     installEventFilter( this );
 
     // Selecting one row at once
@@ -29,7 +38,6 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     currentVariantId = 0;
     tableWidget->setProperty( "alreadyCalculated", false );
     on_addButton_clicked();
-    boldRow( currentVariantId, tableWidget ); // by default first row is applied
     tableWidget->selectRow( 0 ); // by default select the first row
 }
 
@@ -39,6 +47,26 @@ ExtensionWindow::~ExtensionWindow()
 
     if ( !m_extension->GetModalState() )
         m_extension->m_extensionWindow = NULL; //Reset extension window reference
+}
+
+bool ExtensionWindow::nativeEvent( const QByteArray& eventType, void* message, qintptr* result )
+{
+    if (eventType == "windows_generic_MSG")
+    {
+         MSG* m = reinterpret_cast<MSG *>(message);
+         if (m->message == WM_SYSCOMMAND)
+         {
+           if ((m->wParam & 0xfff0) == IDM_SETTINGS)
+           {
+              *result = 0;
+               SettingsDialog* dialog = new SettingsDialog(this);
+               dialog->open();
+               return true;
+           }
+         }
+    }
+
+   return false;
 }
 
 void ExtensionWindow::readSettings()
@@ -51,6 +79,10 @@ void ExtensionWindow::readSettings()
     setGeometry( rect );
     m_settings.endGroup();
 
+    m_settings.beginGroup( "MISC" );
+    if (!m_settings.value("WORKSPACEPATH").isNull())
+        m_extension->bestshaft_workspace_path = m_settings.value("WORKSPACEPATH").toString();
+
     m_firstShowFlag = false;
 }
 
@@ -61,6 +93,9 @@ void ExtensionWindow::writeSettings()
 
     m_settings.beginGroup( "GENERAL" );
     m_settings.setValue( "GEOMETRY", geometry() );
+    m_settings.endGroup();
+    m_settings.beginGroup( "MISC" );
+    m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path);
     m_settings.endGroup();
 }
 
@@ -80,10 +115,26 @@ void ExtensionWindow::showEvent( QShowEvent* e )
 void ExtensionWindow::closeEvent( QCloseEvent* event )
 {
     Q_UNUSED( event );
-//    if ( mayBeSave() )
-//        event->accept();
-//    else
-//        event->ignore();
+
+    // Saving all variants to part
+    QMap<QString, BaseExtension::Variant> variantsToSave;
+    for (int row = 0; row < tableWidget->rowCount(); row++)
+    {
+        BaseExtension::Variant variantToSave;
+
+        // Excluding variant name and von mises
+        for (int col = 1; col < tableWidget->columnCount(); col++)
+        {
+            if (tableWidget->horizontalHeaderItem(col)->text() == "Von Mises" && tableWidget->item(row, col)->text() == "—")
+                variantToSave.insert(tableWidget->horizontalHeaderItem(col)->text(), 0.0);
+            else {
+                variantToSave.insert(tableWidget->horizontalHeaderItem(col)->text(), tableWidget->item(row, col)->text().toDouble());
+            }
+        }
+
+        variantsToSave.insert(tableWidget->item(row, 0)->text(), variantToSave);
+    }
+    m_extension->WriteVariants(variantsToSave);
 }
 
 void ExtensionWindow::on_actionExit_triggered()
@@ -258,6 +309,13 @@ void ExtensionWindow::on_addButton_clicked()
 
     tableWidget->selectRow( rowCount );
 
+//    BaseExtension::Variant variantToSave;
+
+//    for (int i = 1; i < tableWidget->columnCount()-1; i++)
+//    {
+//        variantToSave.insert(tableWidget->horizontalHeaderItem(i)->text(), tableWidget->item(rowCount, i)->text().toDouble());
+//    }
+
     m_extension->variants.append( variant );
 }
 
@@ -266,6 +324,11 @@ void ExtensionWindow::initilizeVariant()
     QApplication::setOverrideCursor( Qt::WaitCursor );
 
     BaseExtension::Variant variant = m_extension->ExtractVariant();
+
+    QMap<QString, BaseExtension::Variant> savedVariants;
+
+    m_extension->ReadVariants(savedVariants);
+
     m_extension->variants.append( variant );
 
     tableWidget->setColumnCount( variant.count() + 2 ); // Variant columns + VarCol + VonMisesCol
@@ -304,6 +367,59 @@ void ExtensionWindow::initilizeVariant()
     tableWidget->setHorizontalHeaderLabels( headersList ); // Table headers
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 
+    // First insert saved variants
+    if (!savedVariants.empty())
+    {
+        for (const auto& var : savedVariants.keys())
+        {
+            int rowCount = tableWidget->rowCount();
+            tableWidget->insertRow( rowCount );
+            QTableWidgetItem* variantName = new QTableWidgetItem( var );
+            tableWidget->setItem( rowCount, 0, variantName );
+
+            for (const auto& attrName : savedVariants[var].keys())
+            {
+                for ( int i = 0; i < tableWidget->columnCount(); i++ )
+                {
+                    if ( tableWidget->horizontalHeaderItem( i )->text() == attrName )
+                    {
+                        // If there is a Von Mises disable any further editing
+                        if (savedVariants[var][QString("Von Mises")] != 0.0)
+                        {
+                            QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+                            tableWidget->setItem( rowCount, i, item );
+                            calculatedVariants.append(rowCount);
+                        }
+                        else {
+                            QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                            tableWidget->setItem( rowCount, i, item );
+                        }
+                    }
+                    if (tableWidget->horizontalHeaderItem( i )->text() == attrName && attrName == "Von Mises")
+                    {
+                        QTableWidgetItem* vonmises_item;
+                        if (savedVariants[var][attrName] == 0.0)
+                        {
+                            vonmises_item = new QTableWidgetItem( "—" );
+                        }
+                        else {
+                            vonmises_item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
+                            tableWidget->item(rowCount, 0)->setFlags(tableWidget->item(rowCount, 0)->flags() & ~Qt::ItemIsEditable);
+                        }
+                        vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
+                        tableWidget->setItem( rowCount, i, vonmises_item );
+                    }
+                }
+            }
+        }
+
+        for (const auto& var : savedVariants)
+        {
+            m_extension->variants.append(var);
+        }
+    }
+
     int rowCount = tableWidget->rowCount();
     tableWidget->insertRow( rowCount );
     QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
@@ -325,6 +441,10 @@ void ExtensionWindow::initilizeVariant()
     vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
     tableWidget->setItem( rowCount, tableWidget->columnCount() - 1,
                           vonmises_item ); // Cтавится прочерк у Von Mises.
+
+    // by default after loading saved variants the next inserted row is applied
+    currentVariantId = rowCount;
+    boldRow( currentVariantId, tableWidget );
 
     QApplication::restoreOverrideCursor();
 }
@@ -365,7 +485,6 @@ void ExtensionWindow::startSolve()
     const QString default_calculix_input_file_name = "abaqus.ccx";
 
     const QString user_default_path = QDir::homePath();
-    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
 
     QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
     std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
@@ -376,17 +495,17 @@ void ExtensionWindow::startSolve()
         QDir user_dir( user_default_path );
 
         // workspace folder not exists
-        if ( !user_dir.exists( bestshaft_workspace_folder_name ) )
+        if ( !user_dir.exists( m_extension->bestshaft_workspace_folder_name ) )
         {
             // failed to create folder
-            if ( !user_dir.mkdir( bestshaft_workspace_folder_name ) )
-                throw std::exception( ( "Cannot create folder: " + bestshaft_workspace_folder_name.toStdString() ).c_str() );
+            if ( !user_dir.mkdir( m_extension->bestshaft_workspace_folder_name ) )
+                throw std::exception( ( "Cannot create folder: " + m_extension->bestshaft_workspace_folder_name.toStdString() ).c_str() );
 
             // folder created successfuly
         }
 
-        QString bestshaft_workspace_path = user_default_path + QDir::separator() + bestshaft_workspace_folder_name;
-        QDir bestshaft_workspace_dir( bestshaft_workspace_path );
+        //QString bestshaft_workspace_path = user_default_path + QDir::separator() + m_extension->bestshaft_workspace_folder_name;
+        QDir bestshaft_workspace_dir( m_extension->bestshaft_workspace_path );
 
         // variant folder not exists
         if ( !bestshaft_workspace_dir.exists( variant_name ) )
@@ -399,15 +518,15 @@ void ExtensionWindow::startSolve()
         }
 
         // create mesh files paths
-        const QString wavefront_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString wavefront_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                             QDir::separator() + default_mesh_file_name + ".obj";
-        const QString stl_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString stl_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                       QDir::separator() + default_mesh_file_name + ".stl";
-        const QString tetgen_input_poly_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString tetgen_input_poly_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                     QDir::separator() + default_mesh_file_name + ".poly";
-        const QString tetgen_input_smesh_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString tetgen_input_smesh_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                      QDir::separator() + default_mesh_file_name + ".smesh";
-        const QString tetgen_input_mtr_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString tetgen_input_mtr_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                    QDir::separator() + default_mesh_file_name + ".mtr";
         const QString gmsh_msh_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
                                            QDir::separator() + default_mesh_file_name + ".msh";
@@ -425,7 +544,7 @@ void ExtensionWindow::startSolve()
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
         const QString run_script_path = bestshaft_home_path + QDir::separator() + "run.bat";
-        const QString bestshaft_workspace_variant_path = bestshaft_workspace_path + QDir::separator() + variant_name;
+        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
 
         const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
                                          ".1.node";
@@ -439,6 +558,7 @@ void ExtensionWindow::startSolve()
 
         const QString ccx_inp_path_without_extension = bestshaft_workspace_variant_path + QDir::separator() +
                                                        default_calculix_input_file_name;
+        const QString discLetter(m_extension->bestshaft_workspace_path.at(0));
 
         m_currentProcess = new QProcess();
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
@@ -456,7 +576,8 @@ void ExtensionWindow::startSolve()
                                    tetgen_ele_path <<
                                    tet2inp_ccx_path <<
                                    variant_name <<
-                                   ccx_inp_path_without_extension )
+                                   ccx_inp_path_without_extension <<
+                                   discLetter)
                                );
 
 //        qDebug() << "run.bat: " << run_script_path << bestshaft_workspace_variant_path << bestshaft_home_path <<

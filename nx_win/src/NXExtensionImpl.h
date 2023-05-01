@@ -54,10 +54,13 @@ public:
         INTERMEDIATE_BOTTOM     // нижняя боковая грань
 //        MORE_DETAILED_BOTTOM
     };
-
+protected:
+    const char* c_variantsAttrTitle = "variantsAttr";
 protected:
     Variant ExtractVariant();
     void ApplyVariant( BaseExtension::Variant variant );
+    void WriteVariants(QMap<QString,BaseExtension::Variant> variants);
+    void ReadVariants(QMap<QString, BaseExtension::Variant> &variants);
 
 //    void CalculateMaxTension( BaseExtension::Variant variant );
 
@@ -199,6 +202,7 @@ protected:
 //protected:
 //    void NamingTest();
     // for extrude
+
 public:
     uf_list_p_t objectList;
 //public:
