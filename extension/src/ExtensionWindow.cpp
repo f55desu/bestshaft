@@ -419,31 +419,31 @@ void ExtensionWindow::initilizeVariant()
             m_extension->variants.append(var);
         }
     }
+    else {
+        int rowCount = tableWidget->rowCount();
+        tableWidget->insertRow( rowCount );
+        QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
+        tableWidget->setItem( rowCount, 0, id );
 
-    int rowCount = tableWidget->rowCount();
-    tableWidget->insertRow( rowCount );
-    QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
-    tableWidget->setItem( rowCount, 0, id );
-
-    for ( const auto& var : variant.keys() )
-    {
-        for ( int i = 0; i < tableWidget->columnCount(); i++ )
+        for ( const auto& var : variant.keys() )
         {
-            if ( tableWidget->horizontalHeaderItem( i )->text() == var )
+            for ( int i = 0; i < tableWidget->columnCount(); i++ )
             {
-                QTableWidgetItem* item = new QTableWidgetItem( QString::number( variant[var] ) );
-                tableWidget->setItem( rowCount, i, item );
+                if ( tableWidget->horizontalHeaderItem( i )->text() == var )
+                {
+                    QTableWidgetItem* item = new QTableWidgetItem( QString::number( variant[var] ) );
+                    tableWidget->setItem( rowCount, i, item );
+                }
             }
         }
+
+        QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
+        vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
+        tableWidget->setItem( rowCount, tableWidget->columnCount() - 1,
+                              vonmises_item ); // Cтавится прочерк у Von Mises.
     }
 
-    QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
-    vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
-    tableWidget->setItem( rowCount, tableWidget->columnCount() - 1,
-                          vonmises_item ); // Cтавится прочерк у Von Mises.
-
     // by default after loading saved variants the next inserted row is applied
-    currentVariantId = rowCount;
     boldRow( currentVariantId, tableWidget );
 
     QApplication::restoreOverrideCursor();
@@ -528,7 +528,7 @@ void ExtensionWindow::startSolve()
                                                      QDir::separator() + default_mesh_file_name + ".smesh";
         const QString tetgen_input_mtr_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                                    QDir::separator() + default_mesh_file_name + ".mtr";
-        const QString gmsh_msh_file_path = bestshaft_workspace_path + QDir::separator() + variant_name +
+        const QString gmsh_msh_file_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name +
                                            QDir::separator() + default_mesh_file_name + ".msh";
 
         double max_facet_size = -1;
@@ -560,9 +560,9 @@ void ExtensionWindow::startSolve()
                                                        default_calculix_input_file_name;
         const QString discLetter(m_extension->bestshaft_workspace_path.at(0));
 
-        m_currentProcess = new QProcess();
+        m_currentProcess = new QProcess(this);
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
-        m_currentProcess->setProcessChannelMode( QProcess::MergedChannels );
+        m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
 
         // cmd.exe process did not terminate itself after executing
         //m_currentProcess->startDetached("cmd.exe", QStringList() << "/c" << "start /b cmd /c echo Hello && taskkill /f /im cmd.exe", QDir::rootPath(), nullptr);
@@ -588,12 +588,10 @@ void ExtensionWindow::startSolve()
     }
     catch ( const std::runtime_error& ex )
     {
-        // TODO: print ERROR to logger
         BaseExtension::GetLogger().error( ex.what() );
     }
     catch ( const std::exception& ex )
     {
-        // TODO: print ERROR to logger
         BaseExtension::GetLogger().error( ex.what() );
     }
 
@@ -609,6 +607,7 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
 
     try
     {
+        // Change to universal variable
         const QString user_default_path = QDir::homePath(),
                       bestshaft_workspace_folder_name = "BestshaftWorkspace",
                       default_calculix_input_file_name = "abaqus.ccx";
@@ -626,31 +625,41 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
     catch ( const std::runtime_error& ex )
     {
         BaseExtension::GetLogger().error( ex.what() );
+        QMessageBox msgBox;
+        msgBox.setText( ex.what() );
+        msgBox.setIcon( QMessageBox::Critical );
+        msgBox.setWindowTitle( QString( "BestShaft" ) );
+        msgBox.setParent( this ); // Set parent to current widget
+        msgBox.setWindowModality( Qt::WindowModal );
+        msgBox.setStandardButtons( QMessageBox::Ok );
+        msgBox.exec();
     }
 
     if ( exitCode )
         goto label_end;
 
-    tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
-                                                                                      someValue ) ); // Set the Von Mises
-
-    // Disable further calculation
-    if ( !calculatedVariants.contains( currentVariantId ) )
-        calculatedVariants.append( currentVariantId );
-
-    //disable and unselect all cells in m_currentIndex row
-    for ( int col = 0; col < tableWidget->columnCount(); col++ )
+    if (someValue > -1)
     {
-        tableWidget->item( m_currentIndex, col )->setSelected( false );
-        tableWidget->item( m_currentIndex, col )->setFlags( tableWidget->item( m_currentIndex,
-                                                                               col )->flags() & ~Qt::ItemIsEditable );
-    }
+        tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
+                                                                                              someValue ) ); // Set the Von Mises
+        // Disable further calculation
+        if ( !calculatedVariants.contains( currentVariantId ) )
+            calculatedVariants.append( currentVariantId );
 
-    // Deselect current row
-    for ( int column = 0; column < tableWidget->columnCount(); column++ )
-    {
-        QModelIndex index = tableWidget->selectionModel()->model()->index( m_currentIndex, column );
-        tableWidget->selectionModel()->select( index, QItemSelectionModel::Deselect );
+        //disable and unselect all cells in m_currentIndex row
+        for ( int col = 0; col < tableWidget->columnCount(); col++ )
+        {
+            tableWidget->item( m_currentIndex, col )->setSelected( false );
+            tableWidget->item( m_currentIndex, col )->setFlags( tableWidget->item( m_currentIndex,
+                                                                                   col )->flags() & ~Qt::ItemIsEditable );
+        }
+
+        // Deselect current row
+        for ( int column = 0; column < tableWidget->columnCount(); column++ )
+        {
+            QModelIndex index = tableWidget->selectionModel()->model()->index( m_currentIndex, column );
+            tableWidget->selectionModel()->select( index, QItemSelectionModel::Deselect );
+        }
     }
 
     m_rowsToBeProceed = tableWidget->selectionModel()->selectedRows();
