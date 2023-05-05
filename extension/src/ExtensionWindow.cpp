@@ -761,13 +761,67 @@ void ExtensionWindow::solveStart( )
 
 void ExtensionWindow::on_paraviewButton_clicked()
 {
-    QApplication::setOverrideCursor( Qt::WaitCursor );
+    QList<QTableWidgetItem*> selectedItems = tableWidget->selectedItems();
+    QVector<int> rowsToParaView;
+    int tempRow = 0;
 
-    auto selectedRows = tableWidget->selectionModel()->selectedRows();
+    // Fill the vector with unique rows
+    for ( QTableWidgetItem* item : selectedItems )
+    {
+        tempRow = item->row();
+
+        if ( !rowsToParaView.contains( tempRow ) )
+            rowsToParaView.append( tempRow );
+    }
 
     // paraview code
 
-    QApplication::restoreOverrideCursor();
+    for (auto& row : rowsToParaView)
+    {
+        QApplication::setOverrideCursor( Qt::WaitCursor );
+
+        QString variant_name = tableWidget->item(row, 0)->text();
+        std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
+
+        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
+        const QString abaqus_vtk_file = bestshaft_workspace_variant_path + QDir::separator() + QString("abaqus.ccx.vtk");
+
+        QFileInfo fileInfo(abaqus_vtk_file);
+
+        if (!fileInfo.exists())
+        {
+            QApplication::restoreOverrideCursor();
+
+            BaseExtension::GetLogger().error(QString("The Abaqus VTK file does not exist for \"%1\"").arg(variant_name).toStdString());
+
+            QMessageBox msgBox;
+            msgBox.setText( QString("The Abaqus VTK file does not exist for \"%1\"").arg(variant_name));
+            msgBox.setIcon( QMessageBox::Warning );
+            msgBox.setWindowTitle( QString( "BestShaft" ) );
+            msgBox.setParent( this ); // Set parent to current widget
+            msgBox.setWindowModality( Qt::WindowModal );
+            msgBox.setStandardButtons( QMessageBox::Ok );
+            msgBox.exec();
+            continue;
+        }
+
+        try
+        {
+            m_currentProcess = new QProcess(this);
+            m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
+            m_currentProcess->start(QProcessEnvironment::systemEnvironment().value( "PARAVIEW_PATH" )+QDir::separator()+"paraview.exe",
+                                    QStringList() << "--data=" << abaqus_vtk_file);
+        }
+        catch (const std::runtime_error& ex )
+        {
+            BaseExtension::GetLogger().error(ex.what());
+        }
+        catch ( const std::exception& ex )
+        {
+            BaseExtension::GetLogger().error( ex.what() );
+        }
+        QApplication::restoreOverrideCursor();
+    }
 }
 
 
@@ -829,17 +883,13 @@ void ExtensionWindow::onMultiplySelection()
     QList<QTableWidgetSelectionRange> ranges = tableWidget->selectedRanges();
 
     // Count the unique rows within the selected ranges
-    QSet<int> selectedRows;
+    QList<int> selectedRows;
 
     foreach ( QTableWidgetSelectionRange range, ranges )
     {
         for ( int row = range.topRow(); row <= range.bottomRow(); ++row )
-            selectedRows.insert( row );
+            selectedRows.append(row);
     }
-
-    // Can't open in ParaView zero variants
-    paraviewButton->setEnabled( selectedRows.count() >= 1 );
-    // Can't calculate zero variants and already calculated
 
     for ( const int var : calculatedVariants )
     {
@@ -850,6 +900,9 @@ void ExtensionWindow::onMultiplySelection()
         }
     }
 
+    // Can't open in ParaView zero and not calculated variants
+    paraviewButton->setEnabled( selectedRows.count() >= 1 && tableWidget->property( "alreadyCalculated" ).toBool());
+    // Can't calculate zero and already calculated variants
     calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property( "alreadyCalculated" ).toBool() );
     tableWidget->setProperty( "alreadyCalculated", false );
     // Can't delete zero variants and can't delete applied variant
