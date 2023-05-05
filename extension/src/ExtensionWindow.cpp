@@ -82,6 +82,9 @@ void ExtensionWindow::readSettings()
     m_settings.beginGroup( "MISC" );
     if (!m_settings.value("WORKSPACEPATH").isNull())
         m_extension->bestshaft_workspace_path = m_settings.value("WORKSPACEPATH").toString();
+    if (!m_settings.value("PARAVIEWPATH").isNull())
+        m_extension->bestshaft_paraview_path = m_settings.value("PARAVIEWPATH").toString();
+    m_settings.endGroup();
 
     m_firstShowFlag = false;
 }
@@ -96,6 +99,7 @@ void ExtensionWindow::writeSettings()
     m_settings.endGroup();
     m_settings.beginGroup( "MISC" );
     m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path);
+    m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path);
     m_settings.endGroup();
 }
 
@@ -786,8 +790,8 @@ void ExtensionWindow::on_paraviewButton_clicked()
         const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
         const QString abaqus_vtk_file = bestshaft_workspace_variant_path + QDir::separator() + QString("abaqus.ccx.vtk");
 
+        // Check if vtk file is exists
         QFileInfo fileInfo(abaqus_vtk_file);
-
         if (!fileInfo.exists())
         {
             QApplication::restoreOverrideCursor();
@@ -805,11 +809,47 @@ void ExtensionWindow::on_paraviewButton_clicked()
             continue;
         }
 
+        // Check if is path to ParaView is specified
+        if (m_extension->bestshaft_paraview_path.isEmpty())
+        {
+            QApplication::restoreOverrideCursor();
+            BaseExtension::GetLogger().error(QString("Path to ParaView is not specified. Specify the path to ParaView in the settings.").arg(variant_name).toStdString());
+
+            QMessageBox msgBox;
+            msgBox.setText( QString("Path to ParaView is not specified. Specify the path to ParaView in the settings."));
+            msgBox.setIcon( QMessageBox::Information );
+            msgBox.setWindowTitle( QString( "BestShaft" ) );
+            msgBox.setParent( this ); // Set parent to current widget
+            msgBox.setWindowModality( Qt::WindowModal );
+            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel);
+            msgBox.exec();
+
+            break;
+        }
+
+        // Check if paraview.exe is exists in path to ParaView
+        QFileInfo paraviewFileInfo(m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe");
+        if ( !paraviewFileInfo.exists() )
+        {
+            QApplication::restoreOverrideCursor();
+            BaseExtension::GetLogger().error(("\""+m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe"+"\" does not exists.").toStdString());
+            QMessageBox msgBox;
+            msgBox.setText( QString("\""+m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe"+"\" does not exists. Specify another right path."));
+            msgBox.setIcon( QMessageBox::Information );
+            msgBox.setWindowTitle( QString( "BestShaft" ) );
+            msgBox.setParent( this ); // Set parent to current widget
+            msgBox.setWindowModality( Qt::WindowModal );
+            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel);
+            msgBox.exec();
+
+            break;
+        }
+
         try
         {
             m_currentProcess = new QProcess(this);
             m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
-            m_currentProcess->start(QProcessEnvironment::systemEnvironment().value( "PARAVIEW_PATH" )+QDir::separator()+"paraview.exe",
+            m_currentProcess->start(m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe",
                                     QStringList() << "--data=" << abaqus_vtk_file);
         }
         catch (const std::runtime_error& ex )

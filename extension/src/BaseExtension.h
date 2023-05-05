@@ -66,6 +66,7 @@ public:
     QString GetHomePath() const;
     const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
     QString bestshaft_workspace_path = QDir::homePath() + QDir::separator() + bestshaft_workspace_folder_name;
+    QString bestshaft_paraview_path = "";
 public:
     static Category& GetLogger();
 

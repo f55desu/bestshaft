@@ -24,6 +24,8 @@ private slots:
 
     void on_browseWorkspaceButton_clicked();
 
+    void on_browseParaViewButton_clicked();
+
 private:
     BaseExtension *m_extension;
 
