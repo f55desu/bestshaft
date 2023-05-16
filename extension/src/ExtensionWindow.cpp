@@ -393,7 +393,8 @@ void ExtensionWindow::initilizeVariant()
                             QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
                             item->setFlags(item->flags() & ~Qt::ItemIsEditable);
                             tableWidget->setItem( rowCount, i, item );
-                            calculatedVariants.append(rowCount);
+                            if (!calculatedVariants.contains(rowCount))
+                               calculatedVariants.append(rowCount);
                         }
                         else {
                             QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
@@ -909,7 +910,37 @@ void ExtensionWindow::on_deleteButton_clicked()
 
         // Delete them
         for ( int row : rowsToDelete )
-            tableWidget->removeRow( row );
+        {
+            calculatedVariants.removeAt(calculatedVariants.indexOf(row)); // Delete from list of calculated
+
+            // Delete from workspace
+            try {
+                QString variant_name = tableWidget->item( row, 0 )->text();
+                std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
+
+                // create workspace and variant folder if not exist
+                QDir user_dir( QDir::homePath() );
+
+                QString folderPath = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
+                QDir folderDir(folderPath);
+
+                // workspace folder not exists
+                if ( user_dir.exists(folderPath) )
+                {
+                    // failed to delete folder
+                    if ( !folderDir.removeRecursively() )
+                        throw std::exception( ( "Cannot delete folder: " + variant_name.toStdString() ).c_str() );
+
+                    // folder deleted successfuly
+                }
+            }
+            catch (std::exception e)
+            {
+                BaseExtension::GetLogger().error(e.what());
+            }
+
+            tableWidget->removeRow( row ); // Delete from table
+        }
 
         if ( tableWidget->rowCount() < 1 )
             addButton->setEnabled( true );
