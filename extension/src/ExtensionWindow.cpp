@@ -690,6 +690,7 @@ void ExtensionWindow::on_solve_stop( int error, ... )
     connect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked );
     tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
     on_applyButton_clicked();
+    m_rowsToBeProceed.clear(); // Condition for addButton to be active
     // activate interface
     paraviewButton->setEnabled( true );
     deleteButton->setEnabled( true );
@@ -717,6 +718,7 @@ void ExtensionWindow::on_cancelButton_clicked()
         tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
         on_applyButton_clicked();
     }
+    m_rowsToBeProceed.clear(); // Condition for addButton to be active
 
     // activate interface
     paraviewButton->setEnabled( true );
@@ -948,7 +950,7 @@ void ExtensionWindow::onMultiplySelection()
     // Can't delete zero variants and can't delete applied variant
     deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains( currentVariantId ) );
     // Can't copy multiply variants
-    addButton->setEnabled( selectedRows.count() == 1 );
+    addButton->setEnabled( selectedRows.count() == 1 && m_rowsToBeProceed.empty());
     // Can't apply multiply variants
     applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) );
 }
