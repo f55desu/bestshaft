@@ -86,6 +86,23 @@ void ExtensionWindow::readSettings()
         m_extension->bestshaft_paraview_path = m_settings.value("PARAVIEWPATH").toString();
     m_settings.endGroup();
 
+    m_settings.beginGroup( "CONSTANTS" );
+    if (!m_settings.value("mesh_max_facet_size_factor").isNull())
+        m_extension->mesh_max_facet_size_factor = m_settings.value("mesh_max_facet_size_factor").toDouble();
+    if (!m_settings.value("force_lenght_factor").isNull())
+        m_extension->force_lenght_factor = m_settings.value("force_lenght_factor").toDouble();
+    if (!m_settings.value("mesh_concentrator_factor").isNull())
+        m_extension->mesh_concentrator_factor = m_settings.value("mesh_concentrator_factor").toDouble();
+    if (!m_settings.value("intermediate_top_length_factor").isNull())
+        m_extension->intermediate_top_length_factor = m_settings.value("intermediate_top_length_factor").toDouble();
+    if (!m_settings.value("intermediate_middle_length_factor").isNull())
+        m_extension->intermediate_middle_length_factor = m_settings.value("intermediate_middle_length_factor").toDouble();
+    if (!m_settings.value("intermediate_bottom_length_factor").isNull())
+        m_extension->intermediate_bottom_length_factor = m_settings.value("intermediate_bottom_length_factor").toDouble();
+    if (!m_settings.value("constraint_length_factor").isNull())
+        m_extension->constraint_length_factor = m_settings.value("constraint_length_factor").toDouble();
+    m_settings.endGroup();
+
     m_firstShowFlag = false;
 }
 
@@ -97,9 +114,20 @@ void ExtensionWindow::writeSettings()
     m_settings.beginGroup( "GENERAL" );
     m_settings.setValue( "GEOMETRY", geometry() );
     m_settings.endGroup();
+
     m_settings.beginGroup( "MISC" );
     m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path);
     m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path);
+    m_settings.endGroup();
+
+    m_settings.beginGroup( "CONSTANTS" );
+    m_settings.setValue( "mesh_max_facet_size_factor", m_extension->mesh_max_facet_size_factor);
+    m_settings.setValue( "force_lenght_factor", m_extension->force_lenght_factor);
+    m_settings.setValue( "mesh_concentrator_factor", m_extension->mesh_concentrator_factor);
+    m_settings.setValue( "intermediate_top_length_factor", m_extension->intermediate_top_length_factor);
+    m_settings.setValue( "intermediate_middle_length_factor", m_extension->intermediate_middle_length_factor);
+    m_settings.setValue( "intermediate_bottom_length_factor", m_extension->intermediate_bottom_length_factor);
+    m_settings.setValue( "constraint_length_factor", m_extension->constraint_length_factor);
     m_settings.endGroup();
 }
 
