@@ -483,24 +483,24 @@ void NXExtensionImpl::WriteMtrFile( const QString& fileName,
 //                               * 0.0097/*parameter to be configurable*/;
 
     double force_length = bounding_box_diagonal_size
-                          * 0.031/*parameter to be configurable*/;
-    double more_detailed_length = bounding_box_diagonal_size
-                                  * 0.0069/*parameter to be configurable*/;
+                          * force_lenght_factor/*parameter to be configurable*/;
+    double mesh_concentrator = bounding_box_diagonal_size
+                                  * mesh_concentrator_factor/*parameter to be configurable*/;
     double intermediate_top_length = bounding_box_diagonal_size
-                                     * 0.01376/*parameter to be configurable*/;
+                                     * intermediate_top_length_factor/*parameter to be configurable*/;
     double intermediate_middle_length = bounding_box_diagonal_size
-                                        * 0.01975/*parameter to be configurable*/;
+                                        * intermediate_middle_length_factor/*parameter to be configurable*/;
     double intermediate_bottom_length = bounding_box_diagonal_size
-                                        * 0.01950/*parameter to be configurable*/;
+                                        * intermediate_bottom_length_factor/*parameter to be configurable*/;
     double constraint_length = bounding_box_diagonal_size
-                               * 0.01985/*parameter to be configurable*/;
+                               * constraint_length_factor/*parameter to be configurable*/;
 
     // Write vertices mtr
     for ( const auto& point : points )
         if ( point.marker == BoundaryMarker::FORCE )
             out << force_length << "\n";
         else if ( point.marker == BoundaryMarker::MORE_DETAILED )
-            out << more_detailed_length << "\n";
+            out << mesh_concentrator << "\n";
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_TOP )
             out << intermediate_top_length << "\n";
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_MIDDLE )
@@ -554,7 +554,7 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
 
     // return bounding box size
     mesh_bounding_box_diagonal_size = corner_point[0].DistanceTo( corner_point[1] );
-    mesh_max_facet_size = mesh_bounding_box_diagonal_size * 0.073/*parameter to be configurable*/;
+    mesh_max_facet_size = mesh_bounding_box_diagonal_size * mesh_max_facet_size_factor/*parameter to be configurable*/;
 
     faceting_parameters.specify_max_facet_size = true;
     faceting_parameters.max_facet_size = mesh_max_facet_size;

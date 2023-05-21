@@ -92,6 +92,23 @@ void ExtensionWindow::readSettings()
 
     m_settings.endGroup();
 
+    m_settings.beginGroup( "CONSTANTS" );
+    if (!m_settings.value("mesh_max_facet_size_factor").isNull())
+        m_extension->mesh_max_facet_size_factor = m_settings.value("mesh_max_facet_size_factor").toDouble();
+    if (!m_settings.value("force_lenght_factor").isNull())
+        m_extension->force_lenght_factor = m_settings.value("force_lenght_factor").toDouble();
+    if (!m_settings.value("mesh_concentrator_factor").isNull())
+        m_extension->mesh_concentrator_factor = m_settings.value("mesh_concentrator_factor").toDouble();
+    if (!m_settings.value("intermediate_top_length_factor").isNull())
+        m_extension->intermediate_top_length_factor = m_settings.value("intermediate_top_length_factor").toDouble();
+    if (!m_settings.value("intermediate_middle_length_factor").isNull())
+        m_extension->intermediate_middle_length_factor = m_settings.value("intermediate_middle_length_factor").toDouble();
+    if (!m_settings.value("intermediate_bottom_length_factor").isNull())
+        m_extension->intermediate_bottom_length_factor = m_settings.value("intermediate_bottom_length_factor").toDouble();
+    if (!m_settings.value("constraint_length_factor").isNull())
+        m_extension->constraint_length_factor = m_settings.value("constraint_length_factor").toDouble();
+    m_settings.endGroup();
+
     m_firstShowFlag = false;
 }
 
@@ -103,9 +120,20 @@ void ExtensionWindow::writeSettings()
     m_settings.beginGroup( "GENERAL" );
     m_settings.setValue( "GEOMETRY", geometry() );
     m_settings.endGroup();
+
     m_settings.beginGroup( "MISC" );
     m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path );
     m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path );
+    m_settings.endGroup();
+
+    m_settings.beginGroup( "CONSTANTS" );
+    m_settings.setValue( "mesh_max_facet_size_factor", m_extension->mesh_max_facet_size_factor);
+    m_settings.setValue( "force_lenght_factor", m_extension->force_lenght_factor);
+    m_settings.setValue( "mesh_concentrator_factor", m_extension->mesh_concentrator_factor);
+    m_settings.setValue( "intermediate_top_length_factor", m_extension->intermediate_top_length_factor);
+    m_settings.setValue( "intermediate_middle_length_factor", m_extension->intermediate_middle_length_factor);
+    m_settings.setValue( "intermediate_bottom_length_factor", m_extension->intermediate_bottom_length_factor);
+    m_settings.setValue( "constraint_length_factor", m_extension->constraint_length_factor);
     m_settings.endGroup();
 }
 
@@ -399,7 +427,8 @@ void ExtensionWindow::initilizeVariant()
                             QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
                             item->setFlags( item->flags() & ~Qt::ItemIsEditable );
                             tableWidget->setItem( rowCount, i, item );
-                            calculatedVariants.append( rowCount );
+                            if (!calculatedVariants.contains(rowCount))
+                               calculatedVariants.append(rowCount);
                         }
                         else
                         {
@@ -701,6 +730,7 @@ void ExtensionWindow::on_solve_stop( int error, ... )
     connect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked );
     tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
     on_applyButton_clicked();
+    m_rowsToBeProceed.clear(); // Condition for addButton to be active
     // activate interface
     paraviewButton->setEnabled( true );
     deleteButton->setEnabled( true );
@@ -728,6 +758,7 @@ void ExtensionWindow::on_cancelButtonClicked()
         tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
         on_applyButton_clicked();
     }
+    m_rowsToBeProceed.clear(); // Condition for addButton to be active
 
     // activate interface
     paraviewButton->setEnabled( true );
@@ -927,7 +958,37 @@ void ExtensionWindow::on_deleteButton_clicked()
 
         // Delete them
         for ( int row : rowsToDelete )
-            tableWidget->removeRow( row );
+        {
+            calculatedVariants.removeAt(calculatedVariants.indexOf(row)); // Delete from list of calculated
+
+            // Delete from workspace
+            try {
+                QString variant_name = tableWidget->item( row, 0 )->text();
+                std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
+
+                // create workspace and variant folder if not exist
+                QDir user_dir( QDir::homePath() );
+
+                QString folderPath = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
+                QDir folderDir(folderPath);
+
+                // workspace folder not exists
+                if ( user_dir.exists(folderPath) )
+                {
+                    // failed to delete folder
+                    if ( !folderDir.removeRecursively() )
+                        throw std::exception( ( "Cannot delete folder: " + variant_name.toStdString() ).c_str() );
+
+                    // folder deleted successfuly
+                }
+            }
+            catch (std::exception e)
+            {
+                BaseExtension::GetLogger().error(e.what());
+            }
+
+            tableWidget->removeRow( row ); // Delete from table
+        }
 
         if ( tableWidget->rowCount() < 1 )
             addButton->setEnabled( true );
@@ -968,7 +1029,7 @@ void ExtensionWindow::onMultiplySelection()
     // Can't delete zero variants and can't delete applied variant
     deleteButton->setEnabled( selectedRows.count() >= 1 && !selectedRows.contains( currentVariantId ) );
     // Can't copy multiply variants
-    addButton->setEnabled( selectedRows.count() == 1 );
+    addButton->setEnabled( selectedRows.count() == 1 && m_rowsToBeProceed.empty());
     // Can't apply multiply variants
     applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) );
 }
