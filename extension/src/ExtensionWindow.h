@@ -27,13 +27,13 @@ protected:
     bool eventFilter( QObject* obj, QEvent* e );
 
 private slots:
-    void on_actionExit_triggered();
+    void on_actionExitTriggered();
     void on_addButton_clicked();
     void on_applyButton_clicked();
     void on_calculateButton_clicked();
     void on_paraviewButton_clicked();
     void on_deleteButton_clicked();
-    void on_cancelButton_clicked();
+    void on_cancelButtonClicked();
 
     void onMultiplySelection();
     void on_cellChanged( int row, int column );

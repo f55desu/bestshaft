@@ -10,12 +10,14 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     QDialog( parent ), m_extension( ext )
 {
     setupUi( this );
-    HMENU hMenu = ::GetSystemMenu(( HWND )winId(), FALSE);
-    if (hMenu != NULL)
+    HMENU hMenu = ::GetSystemMenu( ( HWND )winId(), FALSE );
+
+    if ( hMenu != NULL )
     {
-        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_SEPARATOR, 0, nullptr);
-        ::InsertMenuA(hMenu, 0, MF_BYPOSITION|MF_STRING, IDM_SETTINGS, qPrintable(tr("&Settings...")));
+        ::InsertMenuA( hMenu, 0, MF_BYPOSITION | MF_SEPARATOR, 0, nullptr );
+        ::InsertMenuA( hMenu, 0, MF_BYPOSITION | MF_STRING, IDM_SETTINGS, qPrintable( tr( "&Settings..." ) ) );
     }
+
     installEventFilter( this );
 
     // Selecting one row at once
@@ -51,22 +53,23 @@ ExtensionWindow::~ExtensionWindow()
 
 bool ExtensionWindow::nativeEvent( const QByteArray& eventType, void* message, qintptr* result )
 {
-    if (eventType == "windows_generic_MSG")
+    if ( eventType == "windows_generic_MSG" )
     {
-         MSG* m = reinterpret_cast<MSG *>(message);
-         if (m->message == WM_SYSCOMMAND)
-         {
-           if ((m->wParam & 0xfff0) == IDM_SETTINGS)
-           {
-              *result = 0;
-               SettingsDialog* dialog = new SettingsDialog(this);
-               dialog->open();
-               return true;
-           }
-         }
+        MSG* m = reinterpret_cast<MSG*>( message );
+
+        if ( m->message == WM_SYSCOMMAND )
+        {
+            if ( ( m->wParam & 0xfff0 ) == IDM_SETTINGS )
+            {
+                *result = 0;
+                SettingsDialog* dialog = new SettingsDialog( this );
+                dialog->open();
+                return true;
+            }
+        }
     }
 
-   return false;
+    return false;
 }
 
 void ExtensionWindow::readSettings()
@@ -80,10 +83,13 @@ void ExtensionWindow::readSettings()
     m_settings.endGroup();
 
     m_settings.beginGroup( "MISC" );
-    if (!m_settings.value("WORKSPACEPATH").isNull())
-        m_extension->bestshaft_workspace_path = m_settings.value("WORKSPACEPATH").toString();
-    if (!m_settings.value("PARAVIEWPATH").isNull())
-        m_extension->bestshaft_paraview_path = m_settings.value("PARAVIEWPATH").toString();
+
+    if ( !m_settings.value( "WORKSPACEPATH" ).isNull() )
+        m_extension->bestshaft_workspace_path = m_settings.value( "WORKSPACEPATH" ).toString();
+
+    if ( !m_settings.value( "PARAVIEWPATH" ).isNull() )
+        m_extension->bestshaft_paraview_path = m_settings.value( "PARAVIEWPATH" ).toString();
+
     m_settings.endGroup();
 
     m_firstShowFlag = false;
@@ -98,8 +104,8 @@ void ExtensionWindow::writeSettings()
     m_settings.setValue( "GEOMETRY", geometry() );
     m_settings.endGroup();
     m_settings.beginGroup( "MISC" );
-    m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path);
-    m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path);
+    m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path );
+    m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path );
     m_settings.endGroup();
 }
 
@@ -122,26 +128,28 @@ void ExtensionWindow::closeEvent( QCloseEvent* event )
 
     // Saving all variants to part
     QMap<QString, BaseExtension::Variant> variantsToSave;
-    for (int row = 0; row < tableWidget->rowCount(); row++)
+
+    for ( int row = 0; row < tableWidget->rowCount(); row++ )
     {
         BaseExtension::Variant variantToSave;
 
         // Excluding variant name and von mises
-        for (int col = 1; col < tableWidget->columnCount(); col++)
+        for ( int col = 1; col < tableWidget->columnCount(); col++ )
         {
-            if (tableWidget->horizontalHeaderItem(col)->text() == "Von Mises" && tableWidget->item(row, col)->text() == "—")
-                variantToSave.insert(tableWidget->horizontalHeaderItem(col)->text(), 0.0);
-            else {
-                variantToSave.insert(tableWidget->horizontalHeaderItem(col)->text(), tableWidget->item(row, col)->text().toDouble());
-            }
+            if ( tableWidget->horizontalHeaderItem( col )->text() == "Von Mises" && tableWidget->item( row, col )->text() == "—" )
+                variantToSave.insert( tableWidget->horizontalHeaderItem( col )->text(), 0.0 );
+            else
+                variantToSave.insert( tableWidget->horizontalHeaderItem( col )->text(), tableWidget->item( row,
+                                                                                                           col )->text().toDouble() );
         }
 
-        variantsToSave.insert(tableWidget->item(row, 0)->text(), variantToSave);
+        variantsToSave.insert( tableWidget->item( row, 0 )->text(), variantToSave );
     }
-    m_extension->WriteVariants(variantsToSave);
+
+    m_extension->WriteVariants( variantsToSave );
 }
 
-void ExtensionWindow::on_actionExit_triggered()
+void ExtensionWindow::on_actionExitTriggered()
 {
     close();
 }
@@ -220,8 +228,6 @@ void ExtensionWindow::on_cellEntered ( int row, int column )
 
 void ExtensionWindow::on_addButton_clicked()
 {
-    Q_ASSERT( tableWidget->rowCount() > 0 && tableWidget->selectionModel()->selectedRows().size() == 1 );
-
     int rowCount = tableWidget->rowCount();
 
     if ( rowCount == 0 )
@@ -331,7 +337,7 @@ void ExtensionWindow::initilizeVariant()
 
     QMap<QString, BaseExtension::Variant> savedVariants;
 
-    m_extension->ReadVariants(savedVariants);
+    m_extension->ReadVariants( savedVariants );
 
     m_extension->variants.append( variant );
 
@@ -372,45 +378,48 @@ void ExtensionWindow::initilizeVariant()
     tableWidget->horizontalHeader()->setSectionResizeMode( QHeaderView::Stretch );
 
     // First insert saved variants
-    if (!savedVariants.empty())
+    if ( !savedVariants.empty() )
     {
-        for (const auto& var : savedVariants.keys())
+        for ( const auto& var : savedVariants.keys() )
         {
             int rowCount = tableWidget->rowCount();
             tableWidget->insertRow( rowCount );
             QTableWidgetItem* variantName = new QTableWidgetItem( var );
             tableWidget->setItem( rowCount, 0, variantName );
 
-            for (const auto& attrName : savedVariants[var].keys())
+            for ( const auto& attrName : savedVariants[var].keys() )
             {
                 for ( int i = 0; i < tableWidget->columnCount(); i++ )
                 {
                     if ( tableWidget->horizontalHeaderItem( i )->text() == attrName )
                     {
                         // If there is a Von Mises disable any further editing
-                        if (savedVariants[var][QString("Von Mises")] != 0.0)
+                        if ( savedVariants[var][QString( "Von Mises" )] != 0.0 )
                         {
                             QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
-                            item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+                            item->setFlags( item->flags() & ~Qt::ItemIsEditable );
                             tableWidget->setItem( rowCount, i, item );
-                            calculatedVariants.append(rowCount);
+                            calculatedVariants.append( rowCount );
                         }
-                        else {
+                        else
+                        {
                             QTableWidgetItem* item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
                             tableWidget->setItem( rowCount, i, item );
                         }
                     }
-                    if (tableWidget->horizontalHeaderItem( i )->text() == attrName && attrName == "Von Mises")
+
+                    if ( tableWidget->horizontalHeaderItem( i )->text() == attrName && attrName == "Von Mises" )
                     {
                         QTableWidgetItem* vonmises_item;
-                        if (savedVariants[var][attrName] == 0.0)
-                        {
+
+                        if ( savedVariants[var][attrName] == 0.0 )
                             vonmises_item = new QTableWidgetItem( "—" );
-                        }
-                        else {
+                        else
+                        {
                             vonmises_item = new QTableWidgetItem( QString::number( savedVariants[var][attrName] ) );
-                            tableWidget->item(rowCount, 0)->setFlags(tableWidget->item(rowCount, 0)->flags() & ~Qt::ItemIsEditable);
+                            tableWidget->item( rowCount, 0 )->setFlags( tableWidget->item( rowCount, 0 )->flags() & ~Qt::ItemIsEditable );
                         }
+
                         vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable ); // Set flag to be non-editable
                         tableWidget->setItem( rowCount, i, vonmises_item );
                     }
@@ -418,12 +427,11 @@ void ExtensionWindow::initilizeVariant()
             }
         }
 
-        for (const auto& var : savedVariants)
-        {
-            m_extension->variants.append(var);
-        }
+        for ( const auto& var : savedVariants )
+            m_extension->variants.append( var );
     }
-    else {
+    else
+    {
         int rowCount = tableWidget->rowCount();
         tableWidget->insertRow( rowCount );
         QTableWidgetItem* id = new QTableWidgetItem( GenerateVariantName() );
@@ -503,7 +511,8 @@ void ExtensionWindow::startSolve()
         {
             // failed to create folder
             if ( !user_dir.mkdir( m_extension->bestshaft_workspace_folder_name ) )
-                throw std::exception( ( "Cannot create folder: " + m_extension->bestshaft_workspace_folder_name.toStdString() ).c_str() );
+                throw std::exception( ( "Cannot create folder: " +
+                                        m_extension->bestshaft_workspace_folder_name.toStdString() ).c_str() );
 
             // folder created successfuly
         }
@@ -548,7 +557,8 @@ void ExtensionWindow::startSolve()
 
         const QString bestshaft_home_path = QProcessEnvironment::systemEnvironment().value( "BESTSHAFT_HOME_PATH" );
         const QString run_script_path = bestshaft_home_path + QDir::separator() + "run.bat";
-        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
+        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() +
+                                                         variant_name;
 
         const QString tetgen_node_path = bestshaft_workspace_variant_path + QDir::separator() + default_mesh_file_name +
                                          ".1.node";
@@ -562,9 +572,9 @@ void ExtensionWindow::startSolve()
 
         const QString ccx_inp_path_without_extension = bestshaft_workspace_variant_path + QDir::separator() +
                                                        default_calculix_input_file_name;
-        const QString discLetter(m_extension->bestshaft_workspace_path.at(0));
+        const QString discLetter( m_extension->bestshaft_workspace_path.at( 0 ) );
 
-        m_currentProcess = new QProcess(this);
+        m_currentProcess = new QProcess( this );
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
         m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
 
@@ -581,7 +591,7 @@ void ExtensionWindow::startSolve()
                                    tet2inp_ccx_path <<
                                    variant_name <<
                                    ccx_inp_path_without_extension <<
-                                   discLetter)
+                                   discLetter )
                                );
 
 //        qDebug() << "run.bat: " << run_script_path << bestshaft_workspace_variant_path << bestshaft_home_path <<
@@ -642,10 +652,11 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
     if ( exitCode )
         goto label_end;
 
-    if (someValue > -1)
+    if ( someValue > -1 )
     {
         tableWidget->item( m_currentIndex, tableWidget->columnCount() - 1 )->setText( QString::number(
-                                                                                              someValue ) ); // Set the Von Mises
+                                                                                          someValue ) ); // Set the Von Mises
+
         // Disable further calculation
         if ( !calculatedVariants.contains( currentVariantId ) )
             calculatedVariants.append( currentVariantId );
@@ -686,7 +697,7 @@ void ExtensionWindow::on_solve_stop( int error, ... )
 
     // return all to the begining state
     calculateButton->setText( calculateButton->property( "tmpName" ).toString() );
-    disconnect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked );
+    disconnect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButtonClicked );
     connect( calculateButton, &QPushButton::clicked, this, &ExtensionWindow::on_calculateButton_clicked );
     tableWidget->selectRow( tableWidget->property( "tmpCurrentVariantId" ).toInt() );
     on_applyButton_clicked();
@@ -699,7 +710,7 @@ void ExtensionWindow::on_solve_stop( int error, ... )
     QApplication::processEvents();
 }
 
-void ExtensionWindow::on_cancelButton_clicked()
+void ExtensionWindow::on_cancelButtonClicked()
 {
     if ( m_currentProcess->state() == QProcess::Running )
         m_currentProcess->kill();
@@ -734,7 +745,7 @@ void ExtensionWindow::on_calculateButton_clicked()
     button->setProperty( "tmpName", button->text() );
     button->setText( tr( "&Cancel" ) );
     button->disconnect();
-    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButton_clicked );
+    connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButtonClicked );
 
     //Deactivate all except cancel
     paraviewButton->setEnabled( false );
@@ -780,26 +791,29 @@ void ExtensionWindow::on_paraviewButton_clicked()
 
     // paraview code
 
-    for (auto& row : rowsToParaView)
+    for ( auto& row : rowsToParaView )
     {
         QApplication::setOverrideCursor( Qt::WaitCursor );
 
-        QString variant_name = tableWidget->item(row, 0)->text();
+        QString variant_name = tableWidget->item( row, 0 )->text();
         std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
 
-        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() + variant_name;
-        const QString abaqus_vtk_file = bestshaft_workspace_variant_path + QDir::separator() + QString("abaqus.ccx.vtk");
+        const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() +
+                                                         variant_name;
+        const QString abaqus_vtk_file = bestshaft_workspace_variant_path + QDir::separator() + QString( "abaqus.ccx.vtk" );
 
         // Check if vtk file is exists
-        QFileInfo fileInfo(abaqus_vtk_file);
-        if (!fileInfo.exists())
+        QFileInfo fileInfo( abaqus_vtk_file );
+
+        if ( !fileInfo.exists() )
         {
             QApplication::restoreOverrideCursor();
 
-            BaseExtension::GetLogger().error(QString("The Abaqus VTK file does not exist for \"%1\"").arg(variant_name).toStdString());
+            BaseExtension::GetLogger().error( QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg(
+                                                  variant_name ).toStdString() );
 
             QMessageBox msgBox;
-            msgBox.setText( QString("The Abaqus VTK file does not exist for \"%1\"").arg(variant_name));
+            msgBox.setText( QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg( variant_name ) );
             msgBox.setIcon( QMessageBox::Warning );
             msgBox.setWindowTitle( QString( "BestShaft" ) );
             msgBox.setParent( this ); // Set parent to current widget
@@ -810,36 +824,41 @@ void ExtensionWindow::on_paraviewButton_clicked()
         }
 
         // Check if is path to ParaView is specified
-        if (m_extension->bestshaft_paraview_path.isEmpty())
+        if ( m_extension->bestshaft_paraview_path.isEmpty() )
         {
             QApplication::restoreOverrideCursor();
-            BaseExtension::GetLogger().error(QString("Path to ParaView is not specified. Specify the path to ParaView in the settings.").arg(variant_name).toStdString());
+            BaseExtension::GetLogger().error(
+                QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ).arg(
+                    variant_name ).toStdString() );
 
             QMessageBox msgBox;
-            msgBox.setText( QString("Path to ParaView is not specified. Specify the path to ParaView in the settings."));
+            msgBox.setText( QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ) );
             msgBox.setIcon( QMessageBox::Information );
             msgBox.setWindowTitle( QString( "BestShaft" ) );
             msgBox.setParent( this ); // Set parent to current widget
             msgBox.setWindowModality( Qt::WindowModal );
-            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel);
+            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel );
             msgBox.exec();
 
             break;
         }
 
         // Check if paraview.exe is exists in path to ParaView
-        QFileInfo paraviewFileInfo(m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe");
+        QFileInfo paraviewFileInfo( m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" );
+
         if ( !paraviewFileInfo.exists() )
         {
             QApplication::restoreOverrideCursor();
-            BaseExtension::GetLogger().error(("\""+m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe"+"\" does not exists.").toStdString());
+            BaseExtension::GetLogger().error( ( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
+                                                "\" does not exists." ).toStdString() );
             QMessageBox msgBox;
-            msgBox.setText( QString("\""+m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe"+"\" does not exists. Specify another right path."));
+            msgBox.setText( QString( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
+                                     "\" does not exists. Specify another right path." ) );
             msgBox.setIcon( QMessageBox::Information );
             msgBox.setWindowTitle( QString( "BestShaft" ) );
             msgBox.setParent( this ); // Set parent to current widget
             msgBox.setWindowModality( Qt::WindowModal );
-            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel);
+            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel );
             msgBox.exec();
 
             break;
@@ -847,19 +866,20 @@ void ExtensionWindow::on_paraviewButton_clicked()
 
         try
         {
-            m_currentProcess = new QProcess(this);
+            m_currentProcess = new QProcess( this );
             m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
-            m_currentProcess->start(m_extension->bestshaft_paraview_path+QDir::separator()+"paraview.exe",
-                                    QStringList() << "--data=" << abaqus_vtk_file);
+            m_currentProcess->start( m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe",
+                                     QStringList() << "--data=" << abaqus_vtk_file );
         }
-        catch (const std::runtime_error& ex )
+        catch ( const std::runtime_error& ex )
         {
-            BaseExtension::GetLogger().error(ex.what());
+            BaseExtension::GetLogger().error( ex.what() );
         }
         catch ( const std::exception& ex )
         {
             BaseExtension::GetLogger().error( ex.what() );
         }
+
         QApplication::restoreOverrideCursor();
     }
 }
@@ -928,7 +948,7 @@ void ExtensionWindow::onMultiplySelection()
     foreach ( QTableWidgetSelectionRange range, ranges )
     {
         for ( int row = range.topRow(); row <= range.bottomRow(); ++row )
-            selectedRows.append(row);
+            selectedRows.append( row );
     }
 
     for ( const int var : calculatedVariants )
@@ -941,7 +961,7 @@ void ExtensionWindow::onMultiplySelection()
     }
 
     // Can't open in ParaView zero and not calculated variants
-    paraviewButton->setEnabled( selectedRows.count() >= 1 && tableWidget->property( "alreadyCalculated" ).toBool());
+    paraviewButton->setEnabled( selectedRows.count() >= 1 && tableWidget->property( "alreadyCalculated" ).toBool() );
     // Can't calculate zero and already calculated variants
     calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property( "alreadyCalculated" ).toBool() );
     tableWidget->setProperty( "alreadyCalculated", false );
