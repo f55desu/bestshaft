@@ -5,5 +5,8 @@
     path = external/tet2inp
     url = https://gitlab.inobitec.com/trainee/tet2inp
 [submodule "external/cpython"]
-	path = external/cpython
-	url = https://github.com/python/cpython
+    path = external/cpython
+    url = https://github.com/python/cpython
+[submodule "external/CalculiX-PW-Cygwin"]
+    path = external/CalculiX-PW-Cygwin
+    url = https://github.com/JoelWillLiveForever/CalculiX-PW-Cygwin
