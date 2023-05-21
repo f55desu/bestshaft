@@ -48,19 +48,18 @@ public:
         DEFAULT,                // грань без атрибутов
         CONSTRAINT,             // закрепления (нижняя горизонтальная грань)
         FORCE,                  // нагрузки (верхняя горизонтальная грань)
-        MORE_DETAILED,          // более мелкая сетка в районе перехода эксцентрикового вала
+        MESH_CONCENTRATOR,      // более мелкая сетка в районе перехода эксцентрикового вала
         INTERMEDIATE_TOP,       // верхняя боковая грань
         INTERMEDIATE_MIDDLE,    // центральная горизонтальная грань
         INTERMEDIATE_BOTTOM     // нижняя боковая грань
-//        MORE_DETAILED_BOTTOM
     };
 protected:
     const char* c_variantsAttrTitle = "variantsAttr";
 protected:
     Variant ExtractVariant();
     void ApplyVariant( BaseExtension::Variant variant );
-    void WriteVariants(QMap<QString,BaseExtension::Variant> variants);
-    void ReadVariants(QMap<QString, BaseExtension::Variant> &variants);
+    void WriteVariants( QMap<QString, BaseExtension::Variant> variants );
+    void ReadVariants( QMap<QString, BaseExtension::Variant>& variants );
 
 //    void CalculateMaxTension( BaseExtension::Variant variant );
 
@@ -103,7 +102,7 @@ protected:
             else if ( value == 2 )
                 obj = BoundaryMarker::FORCE;
             else if ( value == 3 )
-                obj = BoundaryMarker::MORE_DETAILED;
+                obj = BoundaryMarker::MESH_CONCENTRATOR;
             else if ( value == 4 )
                 obj = BoundaryMarker::INTERMEDIATE_TOP;
             else if ( value == 5 )
@@ -172,11 +171,10 @@ protected:
 
     void WriteMtrFile( const QString& fileName,
                        const std::set<TetgenPoint3D>& points,
-                       const double& bounding_box_diagonal_size );
+                       const double& max_facet_size );
 
     void GetMeshData( std::set<TetgenPoint3D>& mesh_points,
                       std::vector<TetgenFacet>& mesh_facets,
-                      double& mesh_bounding_box_diagonal_size,
                       double& mesh_max_facet_size );
 
     void SaveMeshDatabase( const QString& wavefront_obj_file_path,

@@ -132,75 +132,77 @@ BaseExtension::Variant NXExtensionImpl::ExtractVariant()
     //        return;
 }
 
-void NXExtensionImpl::WriteVariants(QMap<QString,BaseExtension::Variant> variants)
+void NXExtensionImpl::WriteVariants( QMap<QString, BaseExtension::Variant> variants )
 {
     // Current displayed part tag
     tag_t tag_display_part = NULL_TAG;
     tag_display_part = ::UF_PART_ask_display_part();
 
-    if (!tag_display_part)
+    if ( !tag_display_part )
     {
-        BaseExtension::GetLogger().error("Failed to write variant to a part. Part not exist");
+        BaseExtension::GetLogger().error( "Failed to write variant to a part. Part not exist" );
         return;
     }
 
-    if (variants.empty())
+    if ( variants.empty() )
     {
-        BaseExtension::GetLogger().error("Failed to write variant to a part. No variants provided");
+        BaseExtension::GetLogger().error( "Failed to write variant to a part. No variants provided" );
         return;
     }
 
     QString variantStr; // Variant#1?Attr1:5.0;Attr2:2.0;$Variant#2?Attr1:6.0;Attr2:3.0;$
-    for (const auto& el : variants.keys())
+
+    for ( const auto& el : variants.keys() )
     {
         QString variantName = el;
-        variantStr.append(variantName + "?");
+        variantStr.append( variantName + "?" );
 
-        for (const auto &var : variants[el].keys())
-        {
-            variantStr.append(var + ":" + QString("%1").arg(variants[el][var]) + ";");
-        }
-        variantStr.append("$");
+        for ( const auto& var : variants[el].keys() )
+            variantStr.append( var + ":" + QString( "%1" ).arg( variants[el][var] ) + ";" );
+
+        variantStr.append( "$" );
     }
 
     std::string variantStdStr = variantStr.toStdString();
 
-    const char *c_variantStr = variantStdStr.c_str();
+    const char* c_variantStr = variantStdStr.c_str();
 
     // Writing a string attribute to part file
-    UF_CALL( ::UF_ATTR_set_string_user_attribute(tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, c_variantStr, false) );
+    UF_CALL( ::UF_ATTR_set_string_user_attribute( tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, c_variantStr,
+                                                  false ) );
 }
 
-void NXExtensionImpl::ReadVariants(QMap<QString, Variant> &variants)
+void NXExtensionImpl::ReadVariants( QMap<QString, Variant>& variants )
 {
     // Current displayed part tag
     tag_t tag_display_part = NULL_TAG;
-    tag_display_part = UF_CALL(::UF_PART_ask_display_part());
+    tag_display_part = UF_CALL( ::UF_PART_ask_display_part() );
 
-    if (!tag_display_part)
+    if ( !tag_display_part )
     {
-        BaseExtension::GetLogger().error("Failed to read variants from a part. Part not exist");
+        BaseExtension::GetLogger().error( "Failed to read variants from a part. Part not exist" );
         return;
     }
 
-    char *c_variantStr;
+    char* c_variantStr;
     bool finded = false;
-    UF_CALL( ::UF_ATTR_get_string_user_attribute(tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, &c_variantStr, &finded));
+    UF_CALL( ::UF_ATTR_get_string_user_attribute( tag_display_part, c_variantsAttrTitle, UF_ATTR_NOT_ARRAY, &c_variantStr,
+                                                  &finded ) );
 
     // Matreshka
-    QString variantsStr(c_variantStr); // Example: Variant#1?Attr1:5.0;Attr2:2.0;$Variant#2?Attr1:6.0;Attr2:3.0;$
-    QStringList variantsStrList = variantsStr.split("$");
+    QString variantsStr( c_variantStr ); // Example: Variant#1?Attr1:5.0;Attr2:2.0;$Variant#2?Attr1:6.0;Attr2:3.0;$
+    QStringList variantsStrList = variantsStr.split( "$" );
 
-    for (int i = 0; i < variantsStrList.count()-1; i++)
+    for ( int i = 0; i < variantsStrList.count() - 1; i++ )
     {
-        QStringList variantStr = variantsStrList[i].split("?");
+        QStringList variantStr = variantsStrList[i].split( "?" );
         BaseExtension::Variant variant;
-        QStringList variantAttr = variantStr[1].split(";");
-        for (int j = 0; j < variantAttr.count(); j++)
-        {
-            variant.insert(variantAttr[j].split(":")[0], variantAttr[j].split(":")[1].toDouble());
-        }
-        variants.insert(variantStr[0], variant);
+        QStringList variantAttr = variantStr[1].split( ";" );
+
+        for ( int j = 0; j < variantAttr.count(); j++ )
+            variant.insert( variantAttr[j].split( ":" )[0], variantAttr[j].split( ":" )[1].toDouble() );
+
+        variants.insert( variantStr[0], variant );
     }
 
 //    int attr_count;
@@ -334,8 +336,8 @@ void NXExtensionImpl::WritePolyFile( const QString& fileName,
             out << BoundaryMarker::CONSTRAINT;
         else if ( point.marker == BoundaryMarker::FORCE )
             out << BoundaryMarker::FORCE;
-        else if ( point.marker == BoundaryMarker::MORE_DETAILED )
-            out << BoundaryMarker::MORE_DETAILED;
+        else if ( point.marker == BoundaryMarker::MESH_CONCENTRATOR )
+            out << BoundaryMarker::MESH_CONCENTRATOR;
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_TOP )
             out << BoundaryMarker::INTERMEDIATE_TOP;
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_MIDDLE )
@@ -361,8 +363,8 @@ void NXExtensionImpl::WritePolyFile( const QString& fileName,
             out << BoundaryMarker::CONSTRAINT;
         else if ( facet.marker == BoundaryMarker::FORCE )
             out << BoundaryMarker::FORCE;
-        else if ( facet.marker == BoundaryMarker::MORE_DETAILED )
-            out << BoundaryMarker::MORE_DETAILED;
+        else if ( facet.marker == BoundaryMarker::MESH_CONCENTRATOR )
+            out << BoundaryMarker::MESH_CONCENTRATOR;
         else if ( facet.marker == BoundaryMarker::INTERMEDIATE_TOP )
             out << BoundaryMarker::INTERMEDIATE_TOP;
         else if ( facet.marker == BoundaryMarker::INTERMEDIATE_MIDDLE )
@@ -409,8 +411,8 @@ void NXExtensionImpl::WriteSmeshFile( const QString& fileName,
             out << BoundaryMarker::CONSTRAINT;
         else if ( point.marker == BoundaryMarker::FORCE )
             out << BoundaryMarker::FORCE;
-        else if ( point.marker == BoundaryMarker::MORE_DETAILED )
-            out << BoundaryMarker::MORE_DETAILED;
+        else if ( point.marker == BoundaryMarker::MESH_CONCENTRATOR )
+            out << BoundaryMarker::MESH_CONCENTRATOR;
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_TOP )
             out << BoundaryMarker::INTERMEDIATE_TOP;
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_MIDDLE )
@@ -440,8 +442,8 @@ void NXExtensionImpl::WriteSmeshFile( const QString& fileName,
             out << BoundaryMarker::CONSTRAINT;
         else if ( facet.marker == BoundaryMarker::FORCE )
             out << BoundaryMarker::FORCE;
-        else if ( facet.marker == BoundaryMarker::MORE_DETAILED )
-            out << BoundaryMarker::MORE_DETAILED;
+        else if ( facet.marker == BoundaryMarker::MESH_CONCENTRATOR )
+            out << BoundaryMarker::MESH_CONCENTRATOR;
         else if ( facet.marker == BoundaryMarker::INTERMEDIATE_TOP )
             out << BoundaryMarker::INTERMEDIATE_TOP;
         else if ( facet.marker == BoundaryMarker::INTERMEDIATE_MIDDLE )
@@ -459,7 +461,7 @@ void NXExtensionImpl::WriteSmeshFile( const QString& fileName,
 
 void NXExtensionImpl::WriteMtrFile( const QString& fileName,
                                     const std::set<TetgenPoint3D>& points,
-                                    const double& bounding_box_diagonal_size )
+                                    const double& max_facet_size )
 {
     std::ofstream out( fileName.toStdString() );
 
@@ -471,7 +473,7 @@ void NXExtensionImpl::WriteMtrFile( const QString& fileName,
     // for max_facet_size == 0.016
 //    double force_length = bounding_box_diagonal_size
 //                          * 0.011/*parameter to be configurable*/;
-//    double more_detailed_length = bounding_box_diagonal_size
+//    double mesh_concentrator_length = bounding_box_diagonal_size
 //                                  * 0.005/*parameter to be configurable*/;
 //    double intermediate_top_length = bounding_box_diagonal_size
 //                                     * 0.01070/*parameter to be configurable*/;
@@ -482,24 +484,25 @@ void NXExtensionImpl::WriteMtrFile( const QString& fileName,
 //    double constraint_length = bounding_box_diagonal_size
 //                               * 0.0097/*parameter to be configurable*/;
 
-    double force_length = bounding_box_diagonal_size
-                          * force_lenght_factor/*parameter to be configurable*/;
-    double mesh_concentrator = bounding_box_diagonal_size
-                                  * mesh_concentrator_factor/*parameter to be configurable*/;
-    double intermediate_top_length = bounding_box_diagonal_size
-                                     * intermediate_top_length_factor/*parameter to be configurable*/;
-    double intermediate_middle_length = bounding_box_diagonal_size
-                                        * intermediate_middle_length_factor/*parameter to be configurable*/;
-    double intermediate_bottom_length = bounding_box_diagonal_size
-                                        * intermediate_bottom_length_factor/*parameter to be configurable*/;
-    double constraint_length = bounding_box_diagonal_size
-                               * constraint_length_factor/*parameter to be configurable*/;
+//    double force_length                 = bounding_box_diagonal_size * 0.031;
+//    double mesh_concentrator            = bounding_box_diagonal_size * 0.0069;
+//    double intermediate_top_length      = bounding_box_diagonal_size * 0.01376;
+//    double intermediate_middle_length   = bounding_box_diagonal_size * 0.01975;
+//    double intermediate_bottom_length   = bounding_box_diagonal_size * 0.01950;
+//    double constraint_length            = bounding_box_diagonal_size * 0.01985;
+
+    double force_length                 = max_facet_size * 0.4247;
+    double mesh_concentrator            = max_facet_size * 0.0945;
+    double intermediate_top_length      = max_facet_size * 0.1885;
+    double intermediate_middle_length   = max_facet_size * 0.2705;
+    double intermediate_bottom_length   = max_facet_size * 0.2671;
+    double constraint_length            = max_facet_size * 0.2719;
 
     // Write vertices mtr
     for ( const auto& point : points )
         if ( point.marker == BoundaryMarker::FORCE )
             out << force_length << "\n";
-        else if ( point.marker == BoundaryMarker::MORE_DETAILED )
+        else if ( point.marker == BoundaryMarker::MESH_CONCENTRATOR )
             out << mesh_concentrator << "\n";
         else if ( point.marker == BoundaryMarker::INTERMEDIATE_TOP )
             out << intermediate_top_length << "\n";
@@ -515,7 +518,6 @@ void NXExtensionImpl::WriteMtrFile( const QString& fileName,
 
 void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
                                    std::vector<TetgenFacet>& mesh_facets,
-                                   double& mesh_bounding_box_diagonal_size,
                                    double& mesh_max_facet_size )
 {
     // UF_PART_ask_diplay_part
@@ -530,6 +532,16 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
     UF_CALL( ::UF_OBJ_cycle_objs_in_part( tag_display_part,
                                           UF_solid_type,
                                           &tag_solid_body ) );
+
+    // get model bounding box diagonal size
+    double box[6];
+    UF_CALL( ::UF_MODL_ask_bounding_box( tag_solid_body, box ) );
+
+    Point3D corner_point[2] = {&box[0], &box[3]};
+    double mesh_bounding_box_diagonal_size = corner_point[0].DistanceTo( corner_point[1] );
+
+    // calculate max facet size
+    mesh_max_facet_size = mesh_bounding_box_diagonal_size * mesh_max_facet_size_factor/*parameter to be configurable*/;
 
     // UF_FACET_parameters_t
     UF_FACET_parameters_t faceting_parameters;
@@ -546,15 +558,6 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
 //    faceting_parameters.curve_dist_tolerance = 3.0;
 //    faceting_parameters.curve_angular_tolerance =  0.0;
 //    faceting_parameters.curve_max_length = DBL_MAX;
-
-    double box[6];
-    UF_CALL( ::UF_MODL_ask_bounding_box( tag_solid_body, box ) );
-
-    Point3D corner_point[2] = {&box[0], &box[3]};
-
-    // return bounding box size
-    mesh_bounding_box_diagonal_size = corner_point[0].DistanceTo( corner_point[1] );
-    mesh_max_facet_size = mesh_bounding_box_diagonal_size * mesh_max_facet_size_factor/*parameter to be configurable*/;
 
     faceting_parameters.specify_max_facet_size = true;
     faceting_parameters.max_facet_size = mesh_max_facet_size;
@@ -612,24 +615,14 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
                                                       &has_attribute_force ) );
 
         // check more detailed
-        const char* title_more_detailed = "MORE_DETAILED";
-        char* string_value_more_detailed = 0;
-        logical has_attribute_more_detailed = false;
+        const char* title_mesh_concentrator = "MESH_CONCENTRATOR";
+        char* string_value_mesh_concentrator = 0;
+        logical has_attribute_mesh_concentrator = false;
         UF_CALL( ::UF_ATTR_get_string_user_attribute( face_tag,
-                                                      title_more_detailed,
+                                                      title_mesh_concentrator,
                                                       UF_ATTR_NOT_ARRAY,
-                                                      &string_value_more_detailed,
-                                                      &has_attribute_more_detailed ) );
-
-//        // check more detailed
-//        const char* title_more_detailed_bottom = "MORE_DETAILED_BOTTOM";
-//        char* string_value_more_detailed_bottom = 0;
-//        logical has_attribute_more_detailed_bottom = false;
-//        UF_CALL( ::UF_ATTR_get_string_user_attribute( face_tag,
-//                                                      title_more_detailed_bottom,
-//                                                      UF_ATTR_NOT_ARRAY,
-//                                                      &string_value_more_detailed_bottom,
-//                                                      &has_attribute_more_detailed_bottom ) );
+                                                      &string_value_mesh_concentrator,
+                                                      &has_attribute_mesh_concentrator ) );
 
         // check intermediate top
         const char* title_intermediate_top = "INTERMEDIATE_TOP";
@@ -675,11 +668,8 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
             if ( has_attribute_force )
                 current_tet_point.marker = BoundaryMarker::FORCE;
 
-            if ( has_attribute_more_detailed )
-                current_tet_point.marker = BoundaryMarker::MORE_DETAILED;
-
-//            if ( has_attribute_more_detailed_bottom )
-//                current_tet_point.marker = BoundaryMarker::MORE_DETAILED_BOTTOM;
+            if ( has_attribute_mesh_concentrator )
+                current_tet_point.marker = BoundaryMarker::MESH_CONCENTRATOR;
 
             if ( has_attribute_intermediate_top )
                 current_tet_point.marker = BoundaryMarker::INTERMEDIATE_TOP;
@@ -729,17 +719,11 @@ void NXExtensionImpl::GetMeshData( std::set<TetgenPoint3D>& mesh_points,
             ::UF_free( string_value_force );
         }
 
-        if ( has_attribute_more_detailed )
+        if ( has_attribute_mesh_concentrator )
         {
-            tetgen_facet.marker = BoundaryMarker::MORE_DETAILED;
-            ::UF_free( string_value_more_detailed );
+            tetgen_facet.marker = BoundaryMarker::MESH_CONCENTRATOR;
+            ::UF_free( string_value_mesh_concentrator );
         }
-
-//        if ( has_attribute_more_detailed_bottom )
-//        {
-//            tetgen_facet.marker = BoundaryMarker::MORE_DETAILED_BOTTOM;
-//            ::UF_free( string_value_more_detailed_bottom );
-//        }
 
         if ( has_attribute_intermediate_top )
         {
@@ -778,17 +762,15 @@ void NXExtensionImpl::SaveMeshDatabase( const QString& wavefront_obj_file_path,
     std::set<TetgenPoint3D> points;
     std::vector<TetgenFacet> facets;
 
-    double bounding_box_diagonal_size = -1;
-
-    // get points, facets and bounding box size
-    GetMeshData( points, facets, bounding_box_diagonal_size, max_facet_size );
+    // get points, facets and max facet size
+    GetMeshData( points, facets, max_facet_size );
 
     // write files
     WriteWavefrontObjFile( wavefront_obj_file_path, points, facets );
     WriteStlFile( stl_file_path, facets );
     WritePolyFile( tetgen_input_poly_file_path, points, facets );
     WriteSmeshFile( tetgen_input_smesh_file_path, points, facets );
-    WriteMtrFile( tetgen_input_mtr_file_path, points, bounding_box_diagonal_size );
+    WriteMtrFile( tetgen_input_mtr_file_path, points, max_facet_size );
 
     // .msh and .stl files for gmsh
     // TODO: save .geo file and make adaptive mesh
@@ -905,7 +887,7 @@ void NXExtensionImpl::WriteMshFile( const QString& msh_file_path,
         << points.size() << "\n";
 
     for ( const auto& point : points )
-        if ( point.marker == BoundaryMarker::MORE_DETAILED )
+        if ( point.marker == BoundaryMarker::MESH_CONCENTRATOR )
             out << point_index_map[point] << " " << max_facet_size / 2.0 << "\n";
         else
             out << point_index_map[point] << " " << max_facet_size << "\n";
