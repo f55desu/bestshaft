@@ -97,24 +97,6 @@ void ExtensionWindow::readSettings()
     if ( !m_settings.value( "mesh_max_facet_size_factor" ).isNull() )
         m_extension->mesh_max_facet_size_factor = m_settings.value( "mesh_max_facet_size_factor" ).toDouble();
 
-    if ( !m_settings.value( "force_lenght_factor" ).isNull() )
-        m_extension->force_lenght_factor = m_settings.value( "force_lenght_factor" ).toDouble();
-
-    if ( !m_settings.value( "mesh_concentrator_factor" ).isNull() )
-        m_extension->mesh_concentrator_factor = m_settings.value( "mesh_concentrator_factor" ).toDouble();
-
-    if ( !m_settings.value( "intermediate_top_length_factor" ).isNull() )
-        m_extension->intermediate_top_length_factor = m_settings.value( "intermediate_top_length_factor" ).toDouble();
-
-    if ( !m_settings.value( "intermediate_middle_length_factor" ).isNull() )
-        m_extension->intermediate_middle_length_factor = m_settings.value( "intermediate_middle_length_factor" ).toDouble();
-
-    if ( !m_settings.value( "intermediate_bottom_length_factor" ).isNull() )
-        m_extension->intermediate_bottom_length_factor = m_settings.value( "intermediate_bottom_length_factor" ).toDouble();
-
-    if ( !m_settings.value( "constraint_length_factor" ).isNull() )
-        m_extension->constraint_length_factor = m_settings.value( "constraint_length_factor" ).toDouble();
-
     m_settings.endGroup();
 
     m_firstShowFlag = false;
@@ -126,22 +108,23 @@ void ExtensionWindow::writeSettings()
                           QSettings::IniFormat );
 
     m_settings.beginGroup( "GENERAL" );
+
     m_settings.setValue( "GEOMETRY", geometry() );
+
     m_settings.endGroup();
 
     m_settings.beginGroup( "MISC" );
+
     m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path );
     m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path );
+
     m_settings.endGroup();
 
     m_settings.beginGroup( "CONSTANTS" );
-    m_settings.setValue( "mesh_max_facet_size_factor", m_extension->mesh_max_facet_size_factor );
-    m_settings.setValue( "force_lenght_factor", m_extension->force_lenght_factor );
-    m_settings.setValue( "mesh_concentrator_factor", m_extension->mesh_concentrator_factor );
-    m_settings.setValue( "intermediate_top_length_factor", m_extension->intermediate_top_length_factor );
-    m_settings.setValue( "intermediate_middle_length_factor", m_extension->intermediate_middle_length_factor );
-    m_settings.setValue( "intermediate_bottom_length_factor", m_extension->intermediate_bottom_length_factor );
-    m_settings.setValue( "constraint_length_factor", m_extension->constraint_length_factor );
+
+    if ( !m_settings.value( "mesh_max_facet_size_factor" ).isNull() )
+        m_settings.setValue( "mesh_max_facet_size_factor", m_extension->mesh_max_facet_size_factor );
+
     m_settings.endGroup();
 }
 
@@ -292,12 +275,12 @@ void ExtensionWindow::on_addButton_clicked()
         return x.first < y.first;
     };
 
-    // Setting an intersection between model and seleceted variants
-    std::vector<std::pair<QString, double>> intersection;
+//    // Setting an intersection between model and seleceted variants
+//    std::vector<std::pair<QString, double>> intersection;
 
-    std::set_intersection( variant_from_model.begin(), variant_from_model.end(),
-                           variant_from_table.begin(), variant_from_table.end(),
-                           std::back_inserter( intersection ), compare );
+//    std::set_intersection( variant_from_model.begin(), variant_from_model.end(),
+//                           variant_from_table.begin(), variant_from_table.end(),
+//                           std::back_inserter( intersection ), compare );
 
     // Setting difference between model and selected variants
     std::vector<std::pair<QString, double>> difference_model_table;
@@ -341,13 +324,13 @@ void ExtensionWindow::on_addButton_clicked()
         tableWidget->setItem( insertedRowId, GetColumnId( it.first ), item );
     }
 
-    for ( const auto& it : intersection )
+    for ( const auto& it : variant_from_table )
         tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
                               new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
 
-    for ( const auto& it : difference_model_table )
-        tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
-                              new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
+//    for ( const auto& it : difference_model_table )
+//        tableWidget->setItem( insertedRowId, GetColumnId( it.first ),
+//                              new QTableWidgetItem( QString( "%1" ).arg( it.second ) ) );
 
     QTableWidgetItem* vonmises_item = new QTableWidgetItem( "—" );
     vonmises_item->setFlags( vonmises_item->flags() & ~Qt::ItemIsEditable );
@@ -853,14 +836,10 @@ void ExtensionWindow::on_paraviewButton_clicked()
             BaseExtension::GetLogger().error( QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg(
                                                   variant_name ).toStdString() );
 
-            QMessageBox msgBox;
-            msgBox.setText( QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg( variant_name ) );
-            msgBox.setIcon( QMessageBox::Warning );
-            msgBox.setWindowTitle( QString( "BestShaft" ) );
-            msgBox.setParent( this ); // Set parent to current widget
-            msgBox.setWindowModality( Qt::WindowModal );
-            msgBox.setStandardButtons( QMessageBox::Ok );
-            msgBox.exec();
+            QMessageBox::critical(this,
+                                     "BeshShaft",
+                                     QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg( variant_name ),
+                                     QMessageBox::Ok);
             continue;
         }
 
@@ -869,17 +848,12 @@ void ExtensionWindow::on_paraviewButton_clicked()
         {
             QApplication::restoreOverrideCursor();
             BaseExtension::GetLogger().error(
-                QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ).arg(
-                    variant_name ).toStdString() );
+                QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ).toStdString());
 
-            QMessageBox msgBox;
-            msgBox.setText( QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ) );
-            msgBox.setIcon( QMessageBox::Information );
-            msgBox.setWindowTitle( QString( "BestShaft" ) );
-            msgBox.setParent( this ); // Set parent to current widget
-            msgBox.setWindowModality( Qt::WindowModal );
-            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel );
-            msgBox.exec();
+            QMessageBox::information(this,
+                                     "BeshShaft",
+                                     QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ),
+                                     QMessageBox::Ok | QMessageBox::Cancel);
 
             break;
         }
@@ -892,34 +866,34 @@ void ExtensionWindow::on_paraviewButton_clicked()
             QApplication::restoreOverrideCursor();
             BaseExtension::GetLogger().error( ( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
                                                 "\" does not exists." ).toStdString() );
-            QMessageBox msgBox;
-            msgBox.setText( QString( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
-                                     "\" does not exists. Specify another right path." ) );
-            msgBox.setIcon( QMessageBox::Information );
-            msgBox.setWindowTitle( QString( "BestShaft" ) );
-            msgBox.setParent( this ); // Set parent to current widget
-            msgBox.setWindowModality( Qt::WindowModal );
-            msgBox.setStandardButtons( QMessageBox::Ok | QMessageBox::Cancel );
-            msgBox.exec();
-
+            QMessageBox::information(this,
+                                     "BeshShaft",
+                                     QString( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
+                                                                 "\" does not exists. Specify another right path." ),
+                                     QMessageBox::Ok | QMessageBox::Cancel);
             break;
         }
 
-        try
-        {
-            m_currentProcess = new QProcess( this );
-            m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
-            m_currentProcess->start( m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe",
-                                     QStringList() << "--data=" << abaqus_vtk_file );
-        }
-        catch ( const std::runtime_error& ex )
-        {
-            BaseExtension::GetLogger().error( ex.what() );
-        }
-        catch ( const std::exception& ex )
-        {
-            BaseExtension::GetLogger().error( ex.what() );
-        }
+        m_currentProcess = new QProcess( this );
+        connect(m_currentProcess, QOverload<QProcess::ProcessError>::of(&QProcess::errorOccurred),
+                             [&](QProcess::ProcessError error) {
+                if (error == QProcess::FailedToStart) {
+                    BaseExtension::GetLogger().error( "Postprocessor process failed to start." );
+                } else if (error == QProcess::Crashed) {
+                    BaseExtension::GetLogger().error( "Postprocessor process crashed." );
+                } else if (error == QProcess::Timedout) {
+                    BaseExtension::GetLogger().error( "Postprocessor process timed out." );
+                } else if (error == QProcess::WriteError) {
+                    BaseExtension::GetLogger().error( "Postprocessor write error occurred." );
+                } else if (error == QProcess::ReadError) {
+                    BaseExtension::GetLogger().error( "Postprocessor read error occurred." );
+                } else {
+                    BaseExtension::GetLogger().error( "An unknown postprocessor error occurred." );
+                }
+            });
+        m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
+        m_currentProcess->start( m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe",
+                                 QStringList() << "--data=" << abaqus_vtk_file );
 
         QApplication::restoreOverrideCursor();
     }
