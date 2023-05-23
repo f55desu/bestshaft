@@ -66,16 +66,12 @@ public:
     QString GetHomePath() const;
     const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
     QString bestshaft_workspace_path = QDir::homePath() + QDir::separator() + bestshaft_workspace_folder_name;
-    QString bestshaft_paraview_path = "";
 
     // Configurable variables
     double mesh_max_facet_size_factor = 0.073;
-    double force_lenght_factor = 0.031;
-    double mesh_concentrator_factor = 0.0069;
-    double intermediate_top_length_factor = 0.01376;
-    double intermediate_middle_length_factor = 0.01975;
-    double intermediate_bottom_length_factor = 0.01950;
-    double constraint_length_factor = 0.01985;
+
+    QString postprocessor_path = "";
+    QString postprocessor_args = "";
 
 public:
     static Category& GetLogger();
@@ -113,7 +109,7 @@ protected:
     QString m_iniFileName;
 protected:
     static Category& m_logger;
-protected:
+public:
     QString m_homePath;
 //protected:
 //    QJSEngine* m_scriptEngine;

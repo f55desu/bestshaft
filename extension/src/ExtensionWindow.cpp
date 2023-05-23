@@ -87,8 +87,8 @@ void ExtensionWindow::readSettings()
     if ( !m_settings.value( "WORKSPACEPATH" ).isNull() )
         m_extension->bestshaft_workspace_path = m_settings.value( "WORKSPACEPATH" ).toString();
 
-    if ( !m_settings.value( "PARAVIEWPATH" ).isNull() )
-        m_extension->bestshaft_paraview_path = m_settings.value( "PARAVIEWPATH" ).toString();
+    if ( !m_settings.value( "POSTPROCESSORPATH" ).isNull() )
+        m_extension->postprocessor_path = m_settings.value( "POSTPROCESSORPATH" ).toString();
 
     m_settings.endGroup();
 
@@ -116,7 +116,7 @@ void ExtensionWindow::writeSettings()
     m_settings.beginGroup( "MISC" );
 
     m_settings.setValue( "WORKSPACEPATH", m_extension->bestshaft_workspace_path );
-    m_settings.setValue( "PARAVIEWPATH", m_extension->bestshaft_paraview_path );
+    m_settings.setValue( "POSTPROCESSORPATH", m_extension->postprocessor_path );
 
     m_settings.endGroup();
 
@@ -843,33 +843,31 @@ void ExtensionWindow::on_paraviewButton_clicked()
             continue;
         }
 
-        // Check if is path to ParaView is specified
-        if ( m_extension->bestshaft_paraview_path.isEmpty() )
+        // Check if is path to postprocessor is specified
+        if ( m_extension->postprocessor_path.isEmpty() )
         {
             QApplication::restoreOverrideCursor();
             BaseExtension::GetLogger().error(
-                QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ).toStdString());
+                QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ).toStdString());
 
             QMessageBox::information(this,
                                      "BeshShaft",
-                                     QString( "Path to ParaView is not specified. Specify the path to ParaView in the settings." ),
+                                     QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ),
                                      QMessageBox::Ok | QMessageBox::Cancel);
 
             break;
         }
 
-        // Check if paraview.exe is exists in path to ParaView
-        QFileInfo paraviewFileInfo( m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" );
+        // Check if binary file is exists in path to Postprocessor
+        QFileInfo postprocessorFileInfo( m_extension->postprocessor_path );
 
-        if ( !paraviewFileInfo.exists() )
+        if ( !postprocessorFileInfo.exists() )
         {
             QApplication::restoreOverrideCursor();
-            BaseExtension::GetLogger().error( ( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
-                                                "\" does not exists." ).toStdString() );
+            BaseExtension::GetLogger().error( ( "\"" + m_extension->postprocessor_path + "\" does not exists." ).toStdString() );
             QMessageBox::information(this,
                                      "BeshShaft",
-                                     QString( "\"" + m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe" +
-                                                                 "\" does not exists. Specify another right path." ),
+                                     QString( "\"" + m_extension->postprocessor_path + "\" does not exists. Specify another right path." ),
                                      QMessageBox::Ok | QMessageBox::Cancel);
             break;
         }
@@ -892,8 +890,8 @@ void ExtensionWindow::on_paraviewButton_clicked()
                 }
             });
         m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
-        m_currentProcess->start( m_extension->bestshaft_paraview_path + QDir::separator() + "paraview.exe",
-                                 QStringList() << "--data=" << abaqus_vtk_file );
+        m_currentProcess->start( m_extension->postprocessor_path,
+                                 QStringList() << "--data=" << abaqus_vtk_file);
 
         QApplication::restoreOverrideCursor();
     }
@@ -1081,7 +1079,7 @@ bool ExtensionWindow::eventFilter( QObject* obj, QEvent* e )
         }
         else if ( e->type() == QEvent::Leave && !geometry().contains( QCursor::pos() ) )
         {
-            setWindowOpacity( 0.1 );
+            setWindowOpacity( 0.2 );
             return true;
         }
         else if ( e->type() == QEvent::Hide )

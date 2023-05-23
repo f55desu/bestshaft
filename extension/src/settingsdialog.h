@@ -4,6 +4,7 @@
 #include <QDialog>
 
 #include "ExtensionWindow.h"
+#include "BaseExtension.h"
 
 class ExtensionWindow;
 
@@ -24,7 +25,7 @@ private slots:
 
     void on_browseWorkspaceButton_clicked();
 
-    void on_browseParaViewButton_clicked();
+    void on_browsePostprocessorButton_clicked();
 
 private:
     BaseExtension *m_extension;

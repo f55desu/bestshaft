@@ -80,7 +80,7 @@
         <bool>false</bool>
        </property>
        <property name="text">
-        <string>ParaView</string>
+        <string>Postprocessor</string>
        </property>
       </widget>
      </item>

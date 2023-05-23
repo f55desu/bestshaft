@@ -79,7 +79,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="paraview_lineEdit">
+         <widget class="QLineEdit" name="postprocessor_lineEdit">
           <property name="text">
            <string>&lt;postprocessor path&gt;\&lt;.exe&gt;</string>
           </property>
@@ -89,7 +89,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QPushButton" name="browseParaViewButton">
+         <widget class="QPushButton" name="browsePostprocessorButton">
           <property name="text">
            <string>&amp;Browse...</string>
           </property>
