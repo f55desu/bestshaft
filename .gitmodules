@@ -7,3 +7,9 @@
 [submodule "external/CalculiX-PW-Cygwin"]
     path = external/CalculiX-PW-Cygwin
     url = https://github.com/JoelWillLiveForever/CalculiX-PW-Cygwin
+[submodule "external/tetgen1.5.1"]
+    path = external/tetgen1.5.1
+    url = https://github.com/ufz/tetgen
+[submodule "external/tetgen1.6.0"]
+    path = external/tetgen1.6.0
+    url = https://github.com/libigl/tetgen
