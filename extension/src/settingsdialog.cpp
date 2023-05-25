@@ -12,6 +12,7 @@ SettingsDialog::SettingsDialog(ExtensionWindow *parent) :
     ui->workspaceLineEdit->setText(m_extension->bestshaft_workspace_path);
     ui->postprocessor_lineEdit->setText(m_extension->postprocessor_path);
     ui->args_lineEdit->setText(m_extension->postprocessor_args);
+    ui->maxFacetSizeSpinBox->setValue(m_extension->mesh_max_facet_size_factor);
 
     setAttribute(Qt::WA_DeleteOnClose);
 }
@@ -26,6 +27,7 @@ void SettingsDialog::on_buttonBox_accepted()
     m_extension->bestshaft_workspace_path = ui->workspaceLineEdit->text();
     m_extension->postprocessor_path = ui->postprocessor_lineEdit->text();
     m_extension->postprocessor_args = ui->args_lineEdit->text();
+    m_extension->mesh_max_facet_size_factor = ui->maxFacetSizeSpinBox->value();
 }
 
 
