@@ -13,3 +13,6 @@
 [submodule "external/tetgen1.6.0"]
     path = external/tetgen1.6.0
     url = https://github.com/libigl/tetgen
+[submodule "external/StressCalculator"]
+    path = external/StressCalculator
+    url = https://gitlab.inobitec.com/trainee/StressCalculator
