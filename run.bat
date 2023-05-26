@@ -15,6 +15,13 @@ ccx.exe -i "%~9" >calculix.log
 if %errorlevel% neq 0 (echo CalculiX Exit Code is %errorlevel% & type calculix.log & exit) 1>&2
 
 echo ...Start vtk generator 1>&2 
-%~2\cpython-3.10\PCbuild\amd64\python.exe %~2\ccx2paraview.py "%~9.frd" vtk 1>&2 2>frd2vtk.log
+%~2\cpython-3.10\PCbuild\amd64\python.exe %~2\ccx2paraview.py %~9.frd vtk 1>&2 2>frd2vtk.log
 if %errorlevel% neq 0 (echo ccx2paraview.py Exit Code is %errorlevel% & type frd2vtk.log & exit) 1>&2
+
+shift
+shift
+echo ...Start StressCalculator 1>&2
+StressCalculator.exe -d "%~8" > "%~9"
+if %errorlevel% neq 0 (echo StressCalculator Exit Code is %errorlevel% & type vonmises_result.log & exit) 1>&2
+
 echo Done. 1>&2

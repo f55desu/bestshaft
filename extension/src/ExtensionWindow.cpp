@@ -593,7 +593,11 @@ void ExtensionWindow::startSolve()
 
         const QString ccx_inp_path_without_extension = bestshaft_workspace_variant_path + QDir::separator() +
                                                        default_calculix_input_file_name;
-        const QString discLetter( m_extension->bestshaft_workspace_path.at( 0 ) );
+
+        const QString ccx_dat_path = bestshaft_workspace_variant_path + QDir::separator() +
+                                     default_calculix_input_file_name + ".dat";
+
+        const QString vonmises_result_path = bestshaft_workspace_variant_path + QDir::separator() + "vonmises_result.log";
 
         m_currentProcess = new QProcess( this );
         connect( m_currentProcess, &QProcess::finished, this, &ExtensionWindow::solveEnd );
@@ -612,7 +616,8 @@ void ExtensionWindow::startSolve()
                                    tet2inp_ccx_path <<
                                    variant_name <<
                                    ccx_inp_path_without_extension <<
-                                   discLetter )
+                                   ccx_dat_path <<
+                                   vonmises_result_path)
                                );
 
 //        qDebug() << "run.bat: " << run_script_path << bestshaft_workspace_variant_path << bestshaft_home_path <<
@@ -640,35 +645,17 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
 {
     double someValue = -1;
 
-    try
-    {
-        // Change to universal variable
-        const QString user_default_path = QDir::homePath(),
-                      bestshaft_workspace_folder_name = "BestshaftWorkspace",
-                      default_calculix_input_file_name = "abaqus.ccx";
+    QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
+    std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
+    const QString bestshaft_workspace_variant_path = m_extension->bestshaft_workspace_path + QDir::separator() +
+                                                     variant_name;
+    const QString vonmises_result_path = bestshaft_workspace_variant_path + QDir::separator() + "vonmises_result.log";
 
-        QString variant_name = tableWidget->item( m_currentIndex, 0 )->text();
-        std::replace( variant_name.begin(), variant_name.end(), ' ', '_' );
+    std::ifstream file(vonmises_result_path.toStdString());
+    std::stringstream buffer;
+    buffer << file.rdbuf();
 
-        const QString ccx_dat_path = user_default_path + QDir::separator() +
-                                     bestshaft_workspace_folder_name + QDir::separator() +
-                                     variant_name + QDir::separator() +
-                                     default_calculix_input_file_name + ".dat";
-
-        someValue = calculateMaxTension( ccx_dat_path );
-    }
-    catch ( const std::runtime_error& ex )
-    {
-        BaseExtension::GetLogger().error( ex.what() );
-        QMessageBox msgBox;
-        msgBox.setText( ex.what() );
-        msgBox.setIcon( QMessageBox::Critical );
-        msgBox.setWindowTitle( QString( "BestShaft" ) );
-        msgBox.setParent( this ); // Set parent to current widget
-        msgBox.setWindowModality( Qt::WindowModal );
-        msgBox.setStandardButtons( QMessageBox::Ok );
-        msgBox.exec();
-    }
+    someValue = QString::fromStdString(buffer.str()).toDouble();
 
     if ( exitCode )
         goto label_end;
