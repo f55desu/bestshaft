@@ -1004,45 +1004,6 @@ void ExtensionWindow::onMultiplySelection()
     applyButton->setEnabled( selectedRows.count() == 1 && !selectedRows.contains( currentVariantId ) );
 }
 
-double ExtensionWindow::calculateMaxTension( const QString& ccx_dat_filepath )
-{
-#if 0
-    srand( time( NULL ) );
-    double random_double = static_cast<double>( rand() ) / RAND_MAX;
-    return random_double;
-#else
-    std::ifstream dat( ccx_dat_filepath.toStdString() );
-
-    if ( !dat.is_open() )
-        throw std::runtime_error( "Cannot open file " + ccx_dat_filepath.toStdString() );
-
-    std::string line;
-    std::getline( dat, line );
-
-    int elem, integ_pnt;
-    double Sxx, Syy, Szz, Sxy, Sxz, Syz;
-
-    double von_mises_max = std::numeric_limits<double>::min(),
-           von_mises;
-
-    while ( std::getline( dat, line ) )
-        if ( sscanf_s( line.c_str(), "%d %d %lf %lf %lf %lf %lf %lf",
-                       &elem, &integ_pnt, &Sxx, &Syy, &Szz, &Sxy, &Sxz, &Syz ) == 8 )
-        {
-            von_mises = 0.5 * ( ::pow( Sxx - Syy, 2.0 ) + ::pow( Syy - Szz, 2.0 ) + ::pow( Szz - Sxx, 2.0 ) );
-            von_mises += 3.0 * ( Sxy * Sxy + Sxz * Sxz + Syz * Syz );
-            von_mises = ::sqrt( von_mises );
-
-            if ( von_mises > von_mises_max )
-                von_mises_max = von_mises;
-
-        }
-
-    dat.close();
-    return von_mises_max;
-#endif
-}
-
 // Bold specific row
 void ExtensionWindow::boldRow( int rowId, QTableWidget* tableWidget, bool bold )
 {

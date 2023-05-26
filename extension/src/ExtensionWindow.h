@@ -39,8 +39,6 @@ private slots:
     void on_cellChanged( int row, int column );
     void on_cellEntered(int row, int column);
 
-protected:
-    double calculateMaxTension( const QString& ccx_dat_filepath );
 private:
     void boldRow( int rowId, QTableWidget* tableWidget, bool bold = true );
     void initilizeVariant();
