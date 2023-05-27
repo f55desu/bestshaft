@@ -1,5 +1,4 @@
 #include "Stable.h"
-#include "windows.h"
 #include "BaseExtension.h"
 #include "ExtensionWindow.h"
 #include "SettingsDialog.h"
@@ -617,7 +616,7 @@ void ExtensionWindow::startSolve()
                                    variant_name <<
                                    ccx_inp_path_without_extension <<
                                    ccx_dat_path <<
-                                   vonmises_result_path)
+                                   vonmises_result_path )
                                );
 
 //        qDebug() << "run.bat: " << run_script_path << bestshaft_workspace_variant_path << bestshaft_home_path <<
@@ -651,11 +650,11 @@ void ExtensionWindow::solveEnd( int exitCode, QProcess::ExitStatus /*exitStatus*
                                                      variant_name;
     const QString vonmises_result_path = bestshaft_workspace_variant_path + QDir::separator() + "vonmises_result.log";
 
-    std::ifstream file(vonmises_result_path.toStdString());
+    std::ifstream file( vonmises_result_path.toStdString() );
     std::stringstream buffer;
     buffer << file.rdbuf();
 
-    someValue = QString::fromStdString(buffer.str()).toDouble();
+    someValue = QString::fromStdString( buffer.str() ).toDouble();
 
     if ( exitCode )
         goto label_end;
@@ -823,10 +822,10 @@ void ExtensionWindow::on_paraviewButton_clicked()
             BaseExtension::GetLogger().error( QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg(
                                                   variant_name ).toStdString() );
 
-            QMessageBox::critical(this,
-                                     "BeshShaft",
-                                     QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg( variant_name ),
-                                     QMessageBox::Ok);
+            QMessageBox::critical( this,
+                                   "BeshShaft",
+                                   QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg( variant_name ),
+                                   QMessageBox::Ok );
             continue;
         }
 
@@ -835,12 +834,12 @@ void ExtensionWindow::on_paraviewButton_clicked()
         {
             QApplication::restoreOverrideCursor();
             BaseExtension::GetLogger().error(
-                QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ).toStdString());
+                QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ).toStdString() );
 
-            QMessageBox::information(this,
-                                     "BeshShaft",
-                                     QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ),
-                                     QMessageBox::Ok | QMessageBox::Cancel);
+            QMessageBox::information( this,
+                                      "BeshShaft",
+                                      QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ),
+                                      QMessageBox::Ok | QMessageBox::Cancel );
 
             break;
         }
@@ -852,33 +851,38 @@ void ExtensionWindow::on_paraviewButton_clicked()
         {
             QApplication::restoreOverrideCursor();
             BaseExtension::GetLogger().error( ( "\"" + m_extension->postprocessor_path + "\" does not exists." ).toStdString() );
-            QMessageBox::information(this,
-                                     "BeshShaft",
-                                     QString( "\"" + m_extension->postprocessor_path + "\" does not exists. Specify another right path." ),
-                                     QMessageBox::Ok | QMessageBox::Cancel);
+            QMessageBox::information( this,
+                                      "BeshShaft",
+                                      QString( "\"" + m_extension->postprocessor_path + "\" does not exists. Specify another right path." ),
+                                      QMessageBox::Ok | QMessageBox::Cancel );
             break;
         }
 
         m_currentProcess = new QProcess( this );
-        connect(m_currentProcess, QOverload<QProcess::ProcessError>::of(&QProcess::errorOccurred),
-                             [&](QProcess::ProcessError error) {
-                if (error == QProcess::FailedToStart) {
-                    BaseExtension::GetLogger().error( "Postprocessor process failed to start." );
-                } else if (error == QProcess::Crashed) {
-                    BaseExtension::GetLogger().error( "Postprocessor process crashed." );
-                } else if (error == QProcess::Timedout) {
-                    BaseExtension::GetLogger().error( "Postprocessor process timed out." );
-                } else if (error == QProcess::WriteError) {
-                    BaseExtension::GetLogger().error( "Postprocessor write error occurred." );
-                } else if (error == QProcess::ReadError) {
-                    BaseExtension::GetLogger().error( "Postprocessor read error occurred." );
-                } else {
-                    BaseExtension::GetLogger().error( "An unknown postprocessor error occurred." );
-                }
-            });
+        connect( m_currentProcess, QOverload<QProcess::ProcessError>::of( &QProcess::errorOccurred ),
+                 [&]( QProcess::ProcessError error )
+        {
+            if ( error == QProcess::FailedToStart )
+                BaseExtension::GetLogger().error( "Postprocessor process failed to start." );
+
+            else if ( error == QProcess::Crashed )
+                BaseExtension::GetLogger().error( "Postprocessor process crashed." );
+
+            else if ( error == QProcess::Timedout )
+                BaseExtension::GetLogger().error( "Postprocessor process timed out." );
+
+            else if ( error == QProcess::WriteError )
+                BaseExtension::GetLogger().error( "Postprocessor write error occurred." );
+
+            else if ( error == QProcess::ReadError )
+                BaseExtension::GetLogger().error( "Postprocessor read error occurred." );
+
+            else
+                BaseExtension::GetLogger().error( "An unknown postprocessor error occurred." );
+        } );
         m_currentProcess->setProcessChannelMode( QProcess::SeparateChannels );
         m_currentProcess->start( m_extension->postprocessor_path,
-                                 QStringList() << "--data=" << abaqus_vtk_file);
+                                 QStringList() << "--data=" << abaqus_vtk_file );
 
         QApplication::restoreOverrideCursor();
     }
