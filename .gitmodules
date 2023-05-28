@@ -16,3 +16,6 @@
 [submodule "external/StressCalculator"]
     path = external/StressCalculator
     url = https://gitlab.inobitec.com/trainee/StressCalculator
+[submodule "external/ccx2paraview"]
+	path = external/ccx2paraview
+	url = https://github.com/calculix/ccx2paraview.git

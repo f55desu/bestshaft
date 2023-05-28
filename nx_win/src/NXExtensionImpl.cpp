@@ -25,7 +25,7 @@ int NXExtensionImpl::Report( const char* file, int line, const char* call, int i
         char messg[133], num[10], num2[10];
         BaseExtension::GetLogger().error(
             string( "NX API Error: " ) + file + ", line " +
-            itoa( line, num, 10 ) + ": " + call +
+            ::itoa( line, num, 10 ) + ": " + call +
             ( ( UF_get_fail_message( irc, messg ) ) ?
               ( string( " returned a " ) +  itoa( irc, num2, 10 ) ) :
               ( string( " returned error: " ) + messg ) ) );
