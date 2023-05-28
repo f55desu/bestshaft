@@ -32,7 +32,7 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     deleteButton->setToolTip( "Delete selected variant(s)" );
     applyButton->setToolTip( "Apply selected variant to the current model" );
     addButton->setToolTip( "Add a copy of selected variant or add a current variant applied to model" );
-    paraviewButton->setToolTip( "Open in ParaView selected variant(s)" );
+    postprocessorButton->setToolTip( "Open in postprocessor selected variant(s)" );
 
     tableWidget->setSortingEnabled( true );
     tableWidget->sortByColumn( tableWidget->columnCount() - 1, Qt::DescendingOrder );
@@ -214,6 +214,11 @@ void ExtensionWindow::on_cellChanged( int row, int column )
     {
         applyButton->setEnabled( true );
         tableWidget->setProperty( "tmpEnteredCellValue", -1 );
+    }
+
+    if (row == currentVariantId)
+    {
+        applyButton->setEnabled( true );
     }
 
     if ( column != 0 )
@@ -711,7 +716,7 @@ void ExtensionWindow::on_solve_stop( int error, ... )
     on_applyButton_clicked();
     m_rowsToBeProceed.clear(); // Condition for addButton to be active
     // activate interface
-    paraviewButton->setEnabled( true );
+    postprocessorButton->setEnabled( true );
     deleteButton->setEnabled( true );
     addButton->setEnabled( true );
     applyButton->setEnabled( true );
@@ -741,7 +746,7 @@ void ExtensionWindow::on_cancelButtonClicked()
     m_rowsToBeProceed.clear(); // Condition for addButton to be active
 
     // activate interface
-    paraviewButton->setEnabled( true );
+    postprocessorButton->setEnabled( true );
     deleteButton->setEnabled( true );
     addButton->setEnabled( true );
     applyButton->setEnabled( true );
@@ -759,7 +764,7 @@ void ExtensionWindow::on_calculateButton_clicked()
     connect( button, &QPushButton::clicked, this, &ExtensionWindow::on_cancelButtonClicked );
 
     //Deactivate all except cancel
-    paraviewButton->setEnabled( false );
+    postprocessorButton->setEnabled( false );
     deleteButton->setEnabled( false );
     addButton->setEnabled( false );
     applyButton->setEnabled( false );
@@ -785,10 +790,10 @@ void ExtensionWindow::solveStart( )
     emit startSolve( );
 }
 
-void ExtensionWindow::on_paraviewButton_clicked()
+void ExtensionWindow::on_postprocessorButton_clicked()
 {
     QList<QTableWidgetItem*> selectedItems = tableWidget->selectedItems();
-    QVector<int> rowsToParaView;
+    QVector<int> rowsToPostprocessor;
     int tempRow = 0;
 
     // Fill the vector with unique rows
@@ -796,13 +801,11 @@ void ExtensionWindow::on_paraviewButton_clicked()
     {
         tempRow = item->row();
 
-        if ( !rowsToParaView.contains( tempRow ) )
-            rowsToParaView.append( tempRow );
+        if ( !rowsToPostprocessor.contains( tempRow ) )
+            rowsToPostprocessor.append( tempRow );
     }
 
-    // paraview code
-
-    for ( auto& row : rowsToParaView )
+    for ( auto& row : rowsToPostprocessor )
     {
         QApplication::setOverrideCursor( Qt::WaitCursor );
 
@@ -928,7 +931,8 @@ void ExtensionWindow::on_deleteButton_clicked()
         // Delete them
         for ( int row : rowsToDelete )
         {
-            calculatedVariants.removeAt( calculatedVariants.indexOf( row ) ); // Delete from list of calculated
+            if (calculatedVariants.contains(row))
+                calculatedVariants.removeAt( calculatedVariants.indexOf( row ) ); // Delete from list of calculated
 
             // Delete from workspace
             try
@@ -991,8 +995,8 @@ void ExtensionWindow::onMultiplySelection()
         }
     }
 
-    // Can't open in ParaView zero and not calculated variants
-    paraviewButton->setEnabled( selectedRows.count() >= 1 && tableWidget->property( "alreadyCalculated" ).toBool() );
+    // Can't open in postprocessor zero and not calculated variants
+    postprocessorButton->setEnabled( selectedRows.count() >= 1 && tableWidget->property( "alreadyCalculated" ).toBool() );
     // Can't calculate zero and already calculated variants
     calculateButton->setEnabled( selectedRows.count() >= 1 && !tableWidget->property( "alreadyCalculated" ).toBool() );
     tableWidget->setProperty( "alreadyCalculated", false );

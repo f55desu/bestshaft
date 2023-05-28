@@ -75,7 +75,7 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="paraviewButton">
+      <widget class="QPushButton" name="postprocessorButton">
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -103,7 +103,7 @@
   <tabstop>addButton</tabstop>
   <tabstop>calculateButton</tabstop>
   <tabstop>applyButton</tabstop>
-  <tabstop>paraviewButton</tabstop>
+  <tabstop>postprocessorButton</tabstop>
   <tabstop>deleteButton</tabstop>
  </tabstops>
  <resources/>

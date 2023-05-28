@@ -31,7 +31,7 @@ private slots:
     void on_addButton_clicked();
     void on_applyButton_clicked();
     void on_calculateButton_clicked();
-    void on_paraviewButton_clicked();
+    void on_postprocessorButton_clicked();
     void on_deleteButton_clicked();
     void on_cancelButtonClicked();
 
