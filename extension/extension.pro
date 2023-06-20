@@ -26,6 +26,16 @@ FORMS += \
 
 #RESOURCES += resources.qrc
 
-TRANSLATIONS = ui/extension_ru.ts
+TRANSLATIONS += \
+            ui/extension_en.ts \
+            ui/extension_ru.ts \
+            ui/extension_jp.ts \
+            ui/extension_it.ts \
+            ui/extension_de.ts \
+            ui/extension_zh.ts
 
 include(../system.pri)
+
+DISTFILES += \
+    ui/extension_en.qm \
+    ui/extension_jp.qm

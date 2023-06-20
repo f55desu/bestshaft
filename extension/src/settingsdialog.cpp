@@ -1,6 +1,7 @@
 #include "SettingsDialog.h"
 #include "ui_SettingsDialog.h"
 #include "ExtensionWindow.h"
+#include <QTranslator>
 
 SettingsDialog::SettingsDialog(ExtensionWindow *parent) :
     QDialog(parent),
@@ -52,6 +53,43 @@ void SettingsDialog::on_browsePostprocessorButton_clicked()
     if (!postprocessorFile.isEmpty())
     {
         ui->postprocessor_lineEdit->setText(postprocessorFile);
+    }
+}
+
+
+void SettingsDialog::on_comboBox_currentIndexChanged(int index)
+{
+    QTranslator t;
+    bool loaded = false;
+    if (index == 0)
+    {
+        loaded = t.load(":/extension/ui/extension_en.qm");
+    }
+    else if (index == 3)
+    {
+        loaded = t.load(":/extension/ui/extension_jp.qm");
+    }
+
+//    case 1:
+//       // loaded = t.load("../ui/extension_ru.qm");
+//        break;
+//    case 2:
+//        //loaded = t.load("../ui/extension_de.qm");
+//        break;
+//    case 3:
+//        loaded = t.load(":/ui/extension_jp.qm");
+//        break;
+//    case 4:
+//        //loaded = t.load("../ui/extension_it.qm");
+//        break;
+//    case 5:
+//        //loaded = t.load("../ui/extension_zh.qm");
+//        break;
+    qApp->installTranslator(&t);
+    ui->retranslateUi(this);
+    if (loaded)
+    {
+
     }
 }
 

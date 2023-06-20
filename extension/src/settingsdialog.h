@@ -27,6 +27,8 @@ private slots:
 
     void on_browsePostprocessorButton_clicked();
 
+    void on_comboBox_currentIndexChanged(int index);
+
 private:
     BaseExtension *m_extension;
 

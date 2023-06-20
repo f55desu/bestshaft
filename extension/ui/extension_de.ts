@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE TS>
-<TS version="2.1" language="ru_RU">
+<TS version="2.1" language="de_DE">
 <context>
     <name>ExtensionWindow</name>
     <message>
@@ -11,7 +11,7 @@
     <message>
         <location filename="../src/ExtensionWindow.ui" line="47"/>
         <source>Add</source>
-        <translation type="unfinished">Добавить</translation>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../src/ExtensionWindow.ui" line="57"/>
@@ -228,125 +228,6 @@ Do you want to proceed?</source>
         <location filename="../src/SettingsDialog.cpp" line="52"/>
         <source>Binary (*.exe)</source>
         <translation type="unfinished"></translation>
-    </message>
-</context>
-<context>
-    <name>Wizard</name>
-    <message>
-        <source>POLYCONT - CAE Wizard</source>
-        <translation type="vanished">ПОЛИКОНТ - Мастер расчета</translation>
-    </message>
-    <message>
-        <source>Welcome</source>
-        <translation type="vanished">Начало</translation>
-    </message>
-    <message>
-        <source>Select language:</source>
-        <translation type="vanished">Выберите язык:</translation>
-    </message>
-    <message>
-        <source>Don&apos;t show this tab next time</source>
-        <translation type="vanished">Не показывать эту вкладку в следующий раз</translation>
-    </message>
-    <message>
-        <source>Body</source>
-        <translation type="vanished">Тело</translation>
-    </message>
-    <message>
-        <source>List of selected bodies:</source>
-        <translation type="obsolete">Список выбраных тел:</translation>
-    </message>
-    <message>
-        <source>Add</source>
-        <translation type="vanished">Добавить</translation>
-    </message>
-    <message>
-        <source>Material</source>
-        <translation type="vanished">Материал</translation>
-    </message>
-    <message>
-        <source>Welcome to POLYCONT CAE Wizard. It helps you to make several steps to get result. Use Back, Next buttons or switch tab page to access appropriate parameters of the solution.</source>
-        <translation type="vanished">Добро пожаловать в мастер ПОЛИКОНТ. Он поможет вам ввести необходимые параметры задачи и запустить расчет. Используйте кнопки &quot;Далее&quot;, &quot;Назад&quot; или активируйте нужную вкладку чтобы получить доступ к параметрам задачи.</translation>
-    </message>
-    <message>
-        <source>List of selected elements:</source>
-        <translation type="vanished">Список выбраных элементов:</translation>
-    </message>
-    <message>
-        <source>Young&apos;s modulus:</source>
-        <translation type="vanished">Модуль Юнга:</translation>
-    </message>
-    <message>
-        <source>Poisson coefficient:</source>
-        <translation type="vanished">Коэффициент Пуассона:</translation>
-    </message>
-    <message>
-        <source>Load</source>
-        <translation type="vanished">Нагрузка</translation>
-    </message>
-    <message>
-        <source>Faces list:</source>
-        <translation type="vanished">Список граней:</translation>
-    </message>
-    <message>
-        <source>Name:</source>
-        <translation type="vanished">Имя:</translation>
-    </message>
-    <message>
-        <source>Type:</source>
-        <translation type="vanished">Тип:</translation>
-    </message>
-    <message>
-        <source>Force</source>
-        <translation type="vanished">Сила</translation>
-    </message>
-    <message>
-        <source>Pressure</source>
-        <translation type="vanished">Давление</translation>
-    </message>
-    <message>
-        <source>Value:</source>
-        <translation type="vanished">Значение:</translation>
-    </message>
-    <message>
-        <source>Invert direction</source>
-        <translation type="vanished">Поменять направление</translation>
-    </message>
-    <message>
-        <source>Constrain</source>
-        <translation type="vanished">Ограничение</translation>
-    </message>
-    <message>
-        <source>Finish</source>
-        <translation type="vanished">Расчет</translation>
-    </message>
-    <message>
-        <source>&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;MS Shell Dlg 2&apos;; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;Solver is running...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</source>
-        <translation type="vanished">&lt;!DOCTYPE HTML PUBLIC &quot;-//W3C//DTD HTML 4.0//EN&quot; &quot;http://www.w3.org/TR/REC-html40/strict.dtd&quot;&gt;
-&lt;html&gt;&lt;head&gt;&lt;meta name=&quot;qrichtext&quot; content=&quot;1&quot; /&gt;&lt;style type=&quot;text/css&quot;&gt;
-p, li { white-space: pre-wrap; }
-&lt;/style&gt;&lt;/head&gt;&lt;body style=&quot; font-family:&apos;MS Shell Dlg 2&apos;; font-size:8.25pt; font-weight:400; font-style:normal;&quot;&gt;
-&lt;p align=&quot;center&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:0px; margin-right:0px; -qt-block-indent:0; text-indent:0px;&quot;&gt;&lt;span style=&quot; font-size:8pt; font-weight:600;&quot;&gt;Идет расчет задачи...&lt;/span&gt;&lt;/p&gt;&lt;/body&gt;&lt;/html&gt;</translation>
-    </message>
-    <message>
-        <source>Open console</source>
-        <translation type="vanished">Открыть консоль</translation>
-    </message>
-    <message>
-        <source>Stop</source>
-        <translation type="vanished">Стоп</translation>
-    </message>
-    <message>
-        <source>&lt; Back</source>
-        <translation type="vanished">&lt; Назад</translation>
-    </message>
-    <message>
-        <source>Next &gt;</source>
-        <translation type="vanished">Далее &gt;</translation>
     </message>
 </context>
 </TS>

@@ -27,11 +27,11 @@ ExtensionWindow::ExtensionWindow( QWidget* parent, BaseExtension* ext ) :
     connect( tableWidget, SIGNAL( itemSelectionChanged() ), this, SLOT( onMultiplySelection() ) );
     connect( tableWidget, &QTableWidget::cellChanged, this, &ExtensionWindow::on_cellChanged );
     connect( tableWidget, &QTableWidget::cellEntered, this, &ExtensionWindow::on_cellEntered );
-    calculateButton->setToolTip( "Calculate selected variant(s) Von Mises" );
-    deleteButton->setToolTip( "Delete selected variant(s)" );
-    applyButton->setToolTip( "Apply selected variant to the current model" );
-    addButton->setToolTip( "Add a copy of selected variant or add a current variant applied to model" );
-    postprocessorButton->setToolTip( "Open in postprocessor selected variant(s)" );
+    calculateButton->setToolTip( tr("Calculate selected variant(s) Von Mises") );
+    deleteButton->setToolTip( tr("Delete selected variant(s)") );
+    applyButton->setToolTip( tr("Apply selected variant to the current model") );
+    addButton->setToolTip( tr("Add a copy of selected variant or add a current variant applied to model") );
+    postprocessorButton->setToolTip( tr("Open in postprocessor selected variant(s)") );
 
     tableWidget->setSortingEnabled( true );
     tableWidget->sortByColumn( tableWidget->columnCount() - 1, Qt::DescendingOrder );
@@ -826,8 +826,8 @@ void ExtensionWindow::on_postprocessorButton_clicked()
                                                   variant_name ).toStdString() );
 
             QMessageBox::critical( this,
-                                   "BeshShaft",
-                                   QString( "The Abaqus VTK file does not exist for \"%1\"" ).arg( variant_name ),
+                                   "BestShaft",
+                                   QString( tr("The Abaqus VTK file does not exist for \"%1\"") ).arg( variant_name ),
                                    QMessageBox::Ok );
             continue;
         }
@@ -840,8 +840,8 @@ void ExtensionWindow::on_postprocessorButton_clicked()
                 QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ).toStdString() );
 
             QMessageBox::information( this,
-                                      "BeshShaft",
-                                      QString( "Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings." ),
+                                      "BestShaft",
+                                      QString( tr("Path to Postprocessor is not specified. Specify the path to Postprocessor in the settings.") ),
                                       QMessageBox::Ok | QMessageBox::Cancel );
 
             break;
@@ -856,7 +856,7 @@ void ExtensionWindow::on_postprocessorButton_clicked()
             BaseExtension::GetLogger().error( ( "\"" + m_extension->postprocessor_path + "\" does not exists." ).toStdString() );
             QMessageBox::information( this,
                                       "BeshShaft",
-                                      QString( "\"" + m_extension->postprocessor_path + "\" does not exists. Specify another right path." ),
+                                      QString( "\"" + m_extension->postprocessor_path + tr("\" does not exists. Specify another right path.") ),
                                       QMessageBox::Ok | QMessageBox::Cancel );
             break;
         }
@@ -912,11 +912,11 @@ void ExtensionWindow::on_deleteButton_clicked()
     }
 
     if ( !rowsToDelete.empty() && rowsToDelete.size() == 1 )
-        message.append( QString( "You are about to delete %1" ).arg( tableWidget->item( rowsToDelete.first(), 0 )->text() ) );
+        message.append( QString( tr("You are about to delete %1") ).arg( tableWidget->item( rowsToDelete.first(), 0 )->text() ) );
     else
-        message.append( QString( "You are about to delete %1 items" ).arg( rowsToDelete.size() ) );
+        message.append( QString( tr("You are about to delete %1 items") ).arg( rowsToDelete.size() ) );
 
-    message.append( "\nDo you want to proceed?" );
+    message.append( tr("\nDo you want to proceed?") );
 
     QMessageBox msgBox;
     msgBox.setText( message );
