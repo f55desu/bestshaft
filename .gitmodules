@@ -1,0 +1,21 @@
+[submodule "external/tet2inp"]
+    path = external/tet2inp
+    url = https://gitlab.inobitec.com/trainee/tet2inp
+[submodule "external/cpython"]
+    path = external/cpython
+    url = https://github.com/python/cpython
+[submodule "external/CalculiX-PW-Cygwin"]
+    path = external/CalculiX-PW-Cygwin
+    url = https://github.com/JoelWillLiveForever/CalculiX-PW-Cygwin
+[submodule "external/tetgen1.5.1"]
+    path = external/tetgen1.5.1
+    url = https://github.com/ufz/tetgen
+[submodule "external/tetgen1.6.0"]
+    path = external/tetgen1.6.0
+    url = https://github.com/libigl/tetgen
+[submodule "external/StressCalculator"]
+    path = external/StressCalculator
+    url = https://gitlab.inobitec.com/trainee/StressCalculator
+[submodule "external/ccx2paraview"]
+	path = external/ccx2paraview
+	url = https://github.com/calculix/ccx2paraview.git

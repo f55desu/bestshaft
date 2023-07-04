@@ -14,7 +14,7 @@
    <enum>Qt::StrongFocus</enum>
   </property>
   <property name="windowTitle">
-   <string/>
+   <string>BestShaft</string>
   </property>
   <property name="iconSize" stdset="0">
    <size>
@@ -25,6 +25,9 @@
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
     <widget class="QTableWidget" name="tableWidget">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="sizePolicy">
       <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
        <horstretch>0</horstretch>
@@ -37,22 +40,34 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QPushButton" name="addButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Add</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="applyButton">
+      <widget class="QPushButton" name="calculateButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
-        <string>Apply</string>
+        <string>Solve</string>
+       </property>
+       <property name="default">
+        <bool>false</bool>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="calculateButton">
+      <widget class="QPushButton" name="applyButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
-        <string>Calculate</string>
+        <string>Apply</string>
        </property>
        <property name="default">
         <bool>true</bool>
@@ -60,14 +75,20 @@
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="paraviewButton">
+      <widget class="QPushButton" name="postprocessorButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
-        <string>ParaView</string>
+        <string>Postprocessor</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="deleteButton">
+       <property name="enabled">
+        <bool>false</bool>
+       </property>
        <property name="text">
         <string>Delete</string>
        </property>
@@ -77,6 +98,14 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>tableWidget</tabstop>
+  <tabstop>addButton</tabstop>
+  <tabstop>calculateButton</tabstop>
+  <tabstop>applyButton</tabstop>
+  <tabstop>postprocessorButton</tabstop>
+  <tabstop>deleteButton</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

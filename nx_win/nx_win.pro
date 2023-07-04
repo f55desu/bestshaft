@@ -4,7 +4,9 @@ PATCH = 0
 
 TARGET = nx_win
 TEMPLATE = lib
+
 CONFIG += shared
+
 QT += qml widgets
 
 include(../system.pri)

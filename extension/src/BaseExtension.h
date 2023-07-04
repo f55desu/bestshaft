@@ -29,6 +29,9 @@ public:
 public:
     typedef QMap<QString, double> Variant;
 
+    QList<Variant> variants;
+    //QMap<QString, Variant> model;
+
 public:
     BaseExtension& operator=( const BaseExtension& ) {}
 protected:
@@ -61,11 +64,34 @@ protected:
 
 public:
     QString GetHomePath() const;
+    const QString bestshaft_workspace_folder_name = "BestshaftWorkspace";
+    QString bestshaft_workspace_path = QDir::homePath() + QDir::separator() + bestshaft_workspace_folder_name;
+
+    // Configurable variables
+    double mesh_max_facet_size_factor = 0.073;
+
+    QString postprocessor_path = "";
+    QString postprocessor_args = "";
+
 public:
     static Category& GetLogger();
 
 protected:
     virtual Variant ExtractVariant() = 0;
+    virtual void ApplyVariant( Variant variant ) = 0;
+    virtual void WriteVariants(QMap<QString, BaseExtension::Variant> variants) = 0;
+    virtual void ReadVariants(QMap<QString, Variant> &variants) = 0;
+
+//    virtual void CalculateMaxTension( Variant variant ) = 0;
+
+    virtual void SaveMeshDatabase( const QString& wavefront_obj_file_path,
+                                   const QString& stl_file_path,
+                                   const QString& tetgen_input_poly_file_path,
+                                   const QString& tetgen_input_smesh_file_path,
+                                   const QString& tetgen_input_mtr_file_path,
+                                   const QString& gmsh_msh_file_path,
+                                   double& max_facet_size ) = 0;
+
 //protected:
 //    virtual QString Test() = 0;
 //protected:
@@ -83,7 +109,7 @@ protected:
     QString m_iniFileName;
 protected:
     static Category& m_logger;
-protected:
+public:
     QString m_homePath;
 //protected:
 //    QJSEngine* m_scriptEngine;

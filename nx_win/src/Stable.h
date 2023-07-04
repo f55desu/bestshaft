@@ -21,6 +21,7 @@
 #include <memory.h>
 #include <float.h>
 #include <intrin.h>
+#include <malloc.h>
 
 #if defined(DEBUG) && !defined(SHOW_TIME)
     #define SHOW_TIME
@@ -30,6 +31,11 @@
 #endif
 
 #if defined __cplusplus
+
+    #include <iostream>
+    #include <iomanip>
+    #include <ctime>
+    #include <sstream>
 
     //STL support
     #include <set>
@@ -52,6 +58,11 @@
     #include <stack>
     #include <exception>
     #include <functional>
+
+    #include <strstream>
+    #include <codecvt>
+    #include <locale>
+
     using namespace std;
 
     #ifdef _MSC_VER
@@ -77,7 +88,9 @@
     #include <uf_point.h>
     #include <uf_evalsf.h>
     #include <uf_brep.h>
-    //#include <uf_ui.h>
+    #include <uf_facet.h>
+    #include <uf_ui.h>
+    #include <uf_attr.h>
 
     //Logging
     #include <log4cpp/Category.hh>
@@ -103,10 +116,26 @@
     #include <QApplication>
     #include <QMessageBox>
     #include <QWidget>
+    //    #include <QDebug>
+    #include <QSettings>
+    #include <QDir>
+    #include <QProcess>
+    #include <QProcessEnvironment>
+    //    #include <QStandardPaths>
+    #include <QCryptographicHash>
+
     //    #include <QJSEngine>
 
     #include "EnableMemoryLeak.h"
 
     #include <windows.h>
+
+    //    // tetgen
+    //    #include <tetgen.h>
+
+    //    // CGAL lib
+    //    #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+    //    #include <CGAL/Triangulation_3.h>
+    //    #include <CGAL/Tetrahedral_mesh_3.h>
 
 #endif
